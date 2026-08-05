@@ -2,22 +2,48 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
-// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class DatabaseSeeder extends Seeder
 {
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
-        // User::factory(10)->create();
+        Schema::disableForeignKeyConstraints();
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+        $tables = [
+            'role_has_permissions',
+            'model_has_permissions',
+            'model_has_roles',
+            'permissions',
+            'roles',
+            'article_wp_logs',
+            'article_site_publications',
+            'article_seo_meta',
+            'article_tag',
+            'article_category',
+            'tags',
+            'articles',
+            'wp_sites',
+            'sub_categories',
+            'categories',
+            'companies',
+            'users',
+        ];
+
+        foreach ($tables as $table) {
+            if (Schema::hasTable($table)) {
+                DB::table($table)->truncate();
+            }
+        }
+
+        Schema::enableForeignKeyConstraints();
+
+        $this->call([
+            RolePermissionSeeder::class,
+            CompanySeeder::class,
+            UserSeeder::class,
         ]);
     }
 }

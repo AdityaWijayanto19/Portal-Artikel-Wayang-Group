@@ -1,0 +1,123 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Http\Requests\Company\StoreCompanyRequest;
+use App\Http\Requests\Company\UpdateCompanyRequest;
+use App\Models\Company;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Illuminate\View\View;
+
+class CompanyController extends Controller
+{
+    /**
+     * Tampilkan daftar seluruh perusahaan.
+     */
+    public function index(Request $request): View
+    {
+        $companies = Company::query()
+            ->withCount(['users', 'articles', 'categories', 'wpSites'])
+            ->when($request->search, function ($query, $search) {
+                $query->where('name', 'like', "%{$search}%")
+                    ->orWhere('slug', 'like', "%{$search}%");
+            })
+            ->latest()
+            ->paginate(10)
+            ->withQueryString();
+
+        return view('companies.index', compact('companies'));
+    }
+
+    /**
+     * Tampilkan form tambah perusahaan.
+     */
+    public function create(): View
+    {
+        return view('companies.create');
+    }
+
+    /**
+     * Simpan perusahaan baru ke database.
+     */
+    public function store(StoreCompanyRequest $request): RedirectResponse
+    {
+        $validated = $request->validated();
+
+        // Generasi Slug jika tidak diisi manual
+        $validated['slug'] = $validated['slug'] ? Str::slug($validated['slug']) : Str::slug($validated['name']);
+        $validated['is_active'] = $request->has('is_active');
+
+        // Handle Upload Logo Perusahaan
+        if ($request->hasFile('logo')) {
+            $validated['logo_path'] = $request->file('logo')->store('companies/logos', 'public');
+        }
+
+        Company::create($validated);
+
+        return redirect()->route('companies.index')
+            ->with('success', 'Perusahaan baru berhasil ditambahkan.');
+    }
+
+    /**
+     * Tampilkan detail perusahaan beserta statistik ringkas.
+     */
+    public function show(Company $company): View
+    {
+        $company->loadCount(['users', 'articles', 'categories', 'wpSites']);
+        $latestUsers = $company->users()->latest()->limit(5)->get();
+
+        return view('companies.show', compact('company', 'latestUsers'));
+    }
+
+    /**
+     * Tampilkan form edit perusahaan.
+     */
+    public function edit(Company $company): View
+    {
+        return view('companies.edit', compact('company'));
+    }
+
+    /**
+     * Update data perusahaan.
+     */
+    public function update(UpdateCompanyRequest $request, Company $company): RedirectResponse
+    {
+        $validated = $request->validated();
+
+        $validated['slug'] = $validated['slug'] ? Str::slug($validated['slug']) : Str::slug($validated['name']);
+        $validated['is_active'] = $request->has('is_active');
+
+        // Handle Update Logo
+        if ($request->hasFile('logo')) {
+            if ($company->logo_path && Storage::disk('public')->exists($company->logo_path)) {
+                Storage::disk('public')->delete($company->logo_path);
+            }
+            $validated['logo_path'] = $request->file('logo')->store('companies/logos', 'public');
+        }
+
+        $company->update($validated);
+
+        return redirect()->route('companies.index')
+            ->with('success', "Data perusahaan {$company->name} berhasil diperbarui.");
+    }
+
+    /**
+     * Hapus perusahaan dari database.
+     */
+    public function destroy(Company $company): RedirectResponse
+    {
+        // Hapus logo dari storage jika ada
+        if ($company->logo_path && Storage::disk('public')->exists($company->logo_path)) {
+            Storage::disk('public')->delete($company->logo_path);
+        }
+
+        $companyName = $company->name;
+        $company->delete();
+
+        return redirect()->route('companies.index')
+            ->with('success', "Perusahaan {$companyName} berhasil dihapus.");
+    }
+}

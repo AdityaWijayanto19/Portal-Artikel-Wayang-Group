@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
-use App\Traits\BelongsToCompany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -41,19 +41,49 @@ class User extends Authenticatable
         return $this->belongsTo(Company::class);
     }
 
+    public function companies(): BelongsToMany
+    {
+        return $this->belongsToMany(Company::class, 'company_user');
+    }
+
     // Helper sederhana untuk keterbacaan
     public function isSuperAdmin(): bool
     {
         return $this->hasRole('super_admin');
     }
 
-    public function isAdminPic(): bool
+    public function isAdmin(): bool
     {
-        return $this->hasRole('admin_pic');
+        return $this->hasRole('admin');
     }
 
     public function isAuthor(): bool
     {
         return $this->hasRole('author');
+    }
+
+    /**
+     * Kumpulan ID holding tempat user tergabung (union kolom company_id & pivot company_user).
+     * Dipakai oleh Form Request untuk membatasi pilihan tenant.
+     *
+     * @return array<int, int>
+     */
+    public function companyIds(): array
+    {
+        $ids = $this->companies()->pluck('companies.id')->all();
+
+        if ($this->company_id) {
+            $ids[] = $this->company_id;
+        }
+
+        return array_values(array_unique(array_map('intval', $ids)));
+    }
+
+    /**
+     * Holding utama user (kolom company_id, jatuh ke pivot pertama bila kosong).
+     */
+    public function primaryCompanyId(): ?int
+    {
+        return $this->company_id ?? ($this->companyIds()[0] ?? null);
     }
 }

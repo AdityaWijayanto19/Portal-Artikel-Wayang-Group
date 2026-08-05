@@ -18,12 +18,6 @@ class LoginController extends Controller
      */
     public function showLoginForm(Request $request): View|RedirectResponse
     {
-        if ($request->user()) {
-            return redirect()->route('dashboard', [
-                'panel' => $this->dashboardPanelFor($request->user()),
-            ]);
-        }
-
         return view('auth.login');
     }
 
@@ -32,27 +26,23 @@ class LoginController extends Controller
      */
     public function login(LoginRequest $request): RedirectResponse
     {
-        // 1. Jalankan autentikasi bertahap (Cek Akun -> Cek Password)
         $request->authenticate();
 
-        // 2. Regenerasi sesi untuk keamanan (mencegah Session Fixation)
         $request->session()->regenerate();
 
         $user = $request->user();
 
-        // 3. Set Context Tenant awal ke Session berdasarkan Role Spatie
         if ($user->hasRole('super_admin')) {
-            // Superadmin secara default melihat semua tenant
-            session(['active_company_id' => session('active_company_id', 'all')]);
+            session([
+                'active_company_id' => session('active_company_id', 'all')
+            ]);
         } else {
-            // Admin PIC & Author dikunci langsung ke company_id milik mereka
-            session(['active_company_id' => $user->company_id]);
+            session([
+                'active_company_id' => $user->company_id
+            ]);
         }
 
-        // 4. Redirect ke rute yang dituju (intended) atau ke panel dashboard relevan
-        return redirect()->intended(route('dashboard', [
-            'panel' => $this->dashboardPanelFor($user),
-        ]));
+        return redirect()->intended(route('dashboard'));
     }
 
     /**
@@ -66,22 +56,5 @@ class LoginController extends Controller
         $request->session()->regenerateToken();
 
         return redirect()->route('login');
-    }
-
-    /**
-     * Penentuan nama panel dashboard berdasarkan Spatie Role.
-     */
-    private function dashboardPanelFor(?User $user): string
-    {
-        if (! $user) {
-            return 'overview';
-        }
-
-        return match (true) {
-            $user->hasRole('super_admin') => 'overview',
-            $user->hasRole('admin')       => 'holding',
-            $user->hasRole('author')      => 'editorial',
-            default                       => 'overview',
-        };
     }
 }

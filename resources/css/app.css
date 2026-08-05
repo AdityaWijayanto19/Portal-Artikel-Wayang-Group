@@ -1,12 +1,42 @@
-@import 'tailwindcss';
+/* 1. Import Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=Public+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
 
+/* 2. Import Engine Tailwind CSS v4 */
+@import "tailwindcss";
+
+/* 3. Content Sources Detection (Laravel + Vite + Tailwind v4) */
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
 @source "../**/*.blade.php";
 @source "../**/*.js";
 @source "../**/*.vue";
 
+/* 4. Design System & Theme Tokens (Tailwind CSS v4 Standard) */
 @theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
+    /* Fonts */
+    --font-sans: 'Public Sans', system-ui, -apple-system, sans-serif;
+
+    /* Palette Warna Utama Wayang Group */
+    --color-brand-gold: #c59b27;
+    --color-brand-gold-hover: #b0881f;
+    --color-brand-charcoal: #2d2d2d;
+    --color-brand-brown: #6b4f2b;
+    --color-brand-cream: #f5f0e6;
+
+    /* Dark Theme Surface Colors */
+    --color-brand-bg: #121212;
+    --color-brand-card: #1e1e1e;
+    --color-brand-surface: #252525;
+    --color-brand-border: #2a2a2a;
+    --color-brand-stroke: #333333;
+    --color-brand-text: #C59B27;
+    --color-brand-muted: #a1a1aa;
+}
+
+/* 5. Fallback Root Variables (Jika dibutuhkan untuk skrip/library non-Tailwind) */
+:root {
+    --wg-gold: #c59b27;
+    --wg-charcoal: #2d2d2d;
+    --wg-brown: #6b4f2b;
+    --wg-cream: #f5f0e6;
 }
