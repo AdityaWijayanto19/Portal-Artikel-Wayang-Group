@@ -61,7 +61,7 @@
         <!-- Perusahaan Select -->
         <x-select
             name="company_id"
-            label="Perusahaan / Tenant"
+            label="Perusahaan"
             :options="$companies->pluck('name', 'id')"
             :value="old('company_id', $user->company_id ?? '')"
             placeholder="Pilih Perusahaan..."
@@ -76,7 +76,7 @@
 
         <x-select
             name="role"
-            label="Role / Peran"
+            label="Peran"
             :options="[
                 'author' => 'Author (Penulis Artikel)',
                 'admin' => 'Admin Perusahaan',

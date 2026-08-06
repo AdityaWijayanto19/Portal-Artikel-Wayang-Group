@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -44,6 +45,29 @@ class User extends Authenticatable
     public function companies(): BelongsToMany
     {
         return $this->belongsToMany(Company::class, 'company_user');
+    }
+
+    /**
+     * Filter user berdasarkan tenant aktif.
+     *
+     * Menerima 'all' / null (super_admin lintas tenant → tanpa filter) atau ID company.
+     * Mencocokkan lewat kolom company_id ATAU pivot company_user, dalam satu grup
+     * agar tidak bocor saat digabung dengan filter lain (mis. search).
+     */
+    public function scopeForTenant(Builder $query, int|string|null $companyId): Builder
+    {
+        if (is_null($companyId) || $companyId === 'all') {
+            return $query;
+        }
+
+        $companyId = (int) $companyId;
+
+        return $query->where(function (Builder $q) use ($companyId) {
+            $q->where('company_id', $companyId)
+                ->orWhereHas('companies', function (Builder $sub) use ($companyId) {
+                    $sub->where('companies.id', $companyId);
+                });
+        });
     }
 
     // Helper sederhana untuk keterbacaan

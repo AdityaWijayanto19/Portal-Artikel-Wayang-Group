@@ -26,20 +26,14 @@ class UserController extends Controller
     {
         $currentUser = auth()->user();
 
-        $query = User::with(['roles', 'company', 'companies']);
+        // Tenant aktif mengikuti dropdown navigasi (session). User biasa dikunci
+        // ke company_id mereka; super_admin ikut pilihan tenant aktif ('all' = semua).
+        $activeCompanyId = $currentUser->isSuperAdmin()
+            ? session('active_company_id', 'all')
+            : $currentUser->company_id;
 
-        // Scoping tenant
-        if (! $currentUser->isSuperAdmin()) {
-            $userCompanyId = $currentUser->company_id;
-            $query->whereHas('companies', function ($q) use ($userCompanyId) {
-                $q->where('companies.id', $userCompanyId);
-            })->orWhere('company_id', $userCompanyId);
-        } elseif ($request->filled('company_id') && $request->company_id !== 'all') {
-            $selectedCompanyId = $request->company_id;
-            $query->whereHas('companies', function ($q) use ($selectedCompanyId) {
-                $q->where('companies.id', $selectedCompanyId);
-            })->orWhere('company_id', $selectedCompanyId);
-        }
+        $query = User::with(['roles', 'company', 'companies'])
+            ->forTenant($activeCompanyId);
 
         // Search Filter
         if ($request->filled('search')) {
@@ -51,12 +45,10 @@ class UserController extends Controller
             });
         }
 
-
         $users = $query->orderBy('created_at', 'desc')->paginate(10)->withQueryString();
-        $companies = Company::orderBy('name', 'asc')->get();
         $roles = Role::where('name', '!=', 'super_admin')->get();
 
-        return view('users.index', compact('users', 'companies', 'roles'));
+        return view('users.index', compact('users', 'roles'));
     }
 
     public function create()

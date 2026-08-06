@@ -25,28 +25,19 @@
         @hasrole('super_admin')
             <!-- Tenant Switcher Dropdown (Pergantian Perusahaan) -->
             <div class="space-y-1.5">
-                <label class="text-[10px] font-semibold tracking-wider text-[#FDFBF7]/50 uppercase block">
-                    Perusahaan Aktif
-                </label>
-                <form action="{{ route('tenant.switch') }}" method="POST" id="tenantSwitchForm">
+                <form action="{{ route('tenant.switch') }}" method="POST" id="tenantSwitchForm"
+                    onchange="this.submit()">
                     @csrf
-                    <select name="company_id" onchange="document.getElementById('tenantSwitchForm').submit()"
-                        class="w-full bg-slate-800 text-slate-200 text-xs border border-slate-700 rounded-xl px-3 py-2 focus:outline-none focus:border-[#C59B27] cursor-pointer transition">
-                        {{-- Opsi All hanya tampil jika user Super Admin --}}
-                        @if (auth()->user()->hasRole('super_admin'))
-                            <option value="all" {{ session('active_company_id', 'all') === 'all' ? 'selected' : '' }}>
-                                Semua Perusahaan
-                            </option>
-                        @endif
+                    @php
+                        $tenantOptions = [['id' => 'all', 'name' => 'Semua Perusahaan']];
+                        foreach ($globalCompanies as $company) {
+                            $tenantOptions[] = ['id' => $company->id, 'name' => $company->name];
+                        }
+                    @endphp
 
-                        {{-- Loop daftar perusahaan yang berhak diakses user --}}
-                        @foreach ($globalCompanies as $company)
-                            <option value="{{ $company->id }}"
-                                {{ session('active_company_id') == $company->id ? 'selected' : '' }}>
-                                {{ $company->name }}
-                            </option>
-                        @endforeach
-                    </select>
+                    <x-select name="company_id" label="Perusahaan Aktif" theme="dark"
+                        :value="session('active_company_id', 'all')" :options="$tenantOptions"
+                        :searchable="true" placeholder="Pilih perusahaan..." />
                 </form>
             </div>
         @endhasrole

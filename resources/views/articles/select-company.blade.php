@@ -29,10 +29,10 @@
 
                         <div class="flex items-center gap-3">
                             <div
-                                class="w-12 h-12 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-center shrink-0 overflow-hidden">
+                                class="w-auto h-6 flex items-center justify-center overflow-hidden">
                                 @if ($company->logo_path)
                                     <img src="{{ asset('storage/' . $company->logo_path) }}" alt="{{ $company->name }}"
-                                        class="w-full h-full object-cover">
+                                        class="w-full h-full object-contain">
                                 @else
                                     <span
                                         class="text-sm font-bold text-[#C59B27]">{{ strtoupper(substr($company->name, 0, 2)) }}</span>
