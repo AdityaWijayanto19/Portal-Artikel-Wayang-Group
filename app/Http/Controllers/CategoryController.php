@@ -12,16 +12,25 @@ use Illuminate\View\View;
 
 class CategoryController extends Controller
 {
-    public function __construct(private readonly CategoryService $categoryService)
-    {
-    }
+    public function __construct(private readonly CategoryService $categoryService) {}
 
     public function index(Request $request): View
     {
+        $activeCompanyId = session('active_company_id');
+
         $categories = Category::query()
+            ->with('company')
+            ->when($activeCompanyId && $activeCompanyId !== 'all', function ($query) use ($activeCompanyId) {
+                $query->where('company_id', $activeCompanyId);
+            })
             ->when($request->search, function ($query, $search) {
-                $query->where('name', 'like', "%{$search}%")
-                    ->orWhere('slug', 'like', "%{$search}%");
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                        ->orWhere('slug', 'like', "%{$search}%")
+                        ->orWhereHas('company', function ($cq) use ($search) {
+                            $cq->where('name', 'like', "%{$search}%");
+                        });
+                });
             })
             ->latest()
             ->paginate(10)

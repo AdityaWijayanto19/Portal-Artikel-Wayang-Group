@@ -27,8 +27,12 @@
             </div>
         @endif
 
-        <x-table :headers="['Kategori', 'Slug', 'Status', ['label' => 'Aksi', 'align' => 'right']]" :search-action="route('categories.index')" search-placeholder="Cari nama atau slug..."
-            :pagination="$categories->hasPages() ? $categories->appends(request()->query())->links() : null">
+        <x-table :headers="[
+            'Kategori',
+            'Slug',
+            'Perusahaan',
+            ['label' => 'Aksi', 'align' => 'right'],
+        ]" :search-action="route('categories.index')" search-placeholder="Cari nama atau slug..." :pagination="$categories->hasPages() ? $categories->appends(request()->query())->links() : null">
 
             <x-slot:filters>
                 @if (request()->filled('search'))
@@ -59,8 +63,9 @@
                         <span
                             class="bg-slate-100 px-2.5 py-1 rounded-md text-[11px] border border-slate-200/60">{{ $category->slug }}</span>
                     </td>
-                    <td class="px-6 py-4 text-center font-semibold text-slate-800">
-                        Aktif
+                    <td class="px-6 py-4 font-sans text-slate-600 font-semibold">
+                        {{ $category->company->name ?? 'N/A' }}
+
                     </td>
                     <td class="px-6 py-4 text-right">
                         <div class="inline-flex items-center gap-1.5">

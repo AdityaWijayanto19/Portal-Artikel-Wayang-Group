@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Scopes\TenantScope;
+use App\Support\ArticleContext;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -118,5 +119,24 @@ class Article extends Model
     public function scopeForCompany(Builder $query, int $companyId): Builder
     {
         return $query->where('company_id', $companyId);
+    }
+
+    /**
+     * Route-model binding diisolasi pada perusahaan konteks artikel (ArticleContext),
+     * BUKAN scope global (active_company_id). TenantScope dilepas lalu diganti filter
+     * eksplisit company_id sehingga edit/update/publish/retry hanya bisa menyentuh
+     * artikel milik perusahaan yang sedang difokuskan.
+     */
+    public function resolveRouteBinding($value, $field = null): ?Model
+    {
+        $companyId = ArticleContext::companyId();
+
+        abort_if($companyId === null, 403, 'Perusahaan tidak dapat ditentukan.');
+
+        return static::query()
+            ->withoutGlobalScope(TenantScope::class)
+            ->where($field ?? $this->getRouteKeyName(), $value)
+            ->where('company_id', $companyId)
+            ->firstOrFail();
     }
 }

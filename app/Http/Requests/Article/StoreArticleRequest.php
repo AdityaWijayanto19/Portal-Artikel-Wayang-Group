@@ -4,6 +4,7 @@ namespace App\Http\Requests\Article;
 
 use App\Models\Company;
 use App\Models\User;
+use App\Support\ArticleContext;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -145,23 +146,22 @@ class StoreArticleRequest extends FormRequest
     }
 
     /**
-     * Company aktif untuk request ini (super admin memakai company terpilih di sesi).
+     * Company aktif untuk request ini. Super admin memakai FOKUS modul artikel
+     * (ArticleContext), independen dari scope global. Non-super-admin terkunci
+     * pada perusahaan sendiri.
      */
     protected function resolvedCompanyId(): ?int
     {
-        $user = $this->user();
+        $resolved = ArticleContext::companyId();
 
-        if (! $user) {
-            return null;
+        if ($resolved !== null) {
+            return $resolved;
         }
 
-        if ($user->isSuperAdmin()) {
-            $active = $this->session()->get('active_company_id');
+        // Fallback: super admin tanpa fokus artikel → pakai company_id dari form.
+        $posted = (int) $this->input('company_id');
 
-            return is_numeric($active) ? (int) $active : (int) $this->input('company_id');
-        }
-
-        return $user->primaryCompanyId();
+        return $posted > 0 ? $posted : null;
     }
 
     /**

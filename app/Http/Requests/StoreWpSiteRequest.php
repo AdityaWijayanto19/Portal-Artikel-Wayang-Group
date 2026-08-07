@@ -28,7 +28,7 @@ class StoreWpSiteRequest extends FormRequest
         $companyId = $this->input('company_id')
             ?? $user?->company_id
             ?? session('active_company_id');
-        $siteId = $this->route('wpSite')?->id;
+        $siteId = $this->route('wp_site')?->id;
 
         return [
             'company_id' => [

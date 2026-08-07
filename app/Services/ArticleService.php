@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Jobs\PublishArticleToWordPressJob;
 use App\Models\Article;
 use App\Models\ArticleSitePublication;
+use App\Models\Scopes\TenantScope;
 use App\Models\Tag;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
@@ -184,7 +185,8 @@ class ArticleService
      */
     public function listForCompany(int $companyId): Collection
     {
-        return Article::with(['seoMeta', 'categories', 'tags', 'sitePublications.wpSite', 'author'])
+        return Article::withoutGlobalScope(TenantScope::class)
+            ->with(['seoMeta', 'categories', 'tags', 'sitePublications.wpSite', 'author'])
             ->forCompany($companyId)
             ->latest()
             ->get();
@@ -192,11 +194,13 @@ class ArticleService
 
     /**
      * Daftar artikel per company dengan paginasi + pencarian (untuk halaman index).
-     * TenantScope tetap aktif, namun forCompany menegaskan isolasi secara eksplisit.
+     * TenantScope dilepas: konteks artikel independen dari scope global (active_company_id),
+     * isolasi tenant ditegakkan eksplisit lewat forCompany($companyId).
      */
     public function paginateForCompany(int $companyId, ?string $search = null, int $perPage = 10): LengthAwarePaginator
     {
-        return Article::with(['seoMeta', 'categories', 'tags', 'sitePublications.wpSite', 'author'])
+        return Article::withoutGlobalScope(TenantScope::class)
+            ->with(['seoMeta', 'categories', 'tags', 'sitePublications.wpSite', 'author'])
             ->forCompany($companyId)
             ->when($search, function ($query, $search) {
                 $query->where(function ($q) use ($search) {
@@ -246,7 +250,7 @@ class ArticleService
                 continue;
             }
 
-            $model = Tag::firstOrCreate(
+            $model = Tag::withoutGlobalScope(TenantScope::class)->firstOrCreate(
                 ['company_id' => $companyId, 'slug' => Str::slug($name)],
                 ['name' => $name],
             );
