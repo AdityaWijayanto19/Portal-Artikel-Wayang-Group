@@ -4,7 +4,11 @@
 @section('subtitle', 'Susun, nilai SEO, dan publikasikan artikel ke situs WordPress ' . $company->name . '.')
 
 @push('styles')
-    <style>[x-cloak] { display: none !important; }</style>
+    <style>
+        [x-cloak] {
+            display: none !important;
+        }
+    </style>
 @endpush
 
 @section('header_actions')
@@ -54,8 +58,7 @@
 
         <x-table :headers="[
             'Artikel',
-            'Skor SEO',
-            'Publikasi SEO',
+            ['label' => 'Skor SEO', 'align' => 'center'],
             'Publikasi Situs',
             'Status',
             ['label' => 'Aksi', 'align' => 'right'],
@@ -81,10 +84,10 @@
                     [$statusLabel, $statusColor] = $statusMap[$article->status] ?? ['—', 'slate'];
                 @endphp
                 <tr class="hover:bg-slate-50/80 transition align-top">
-                    <td class="px-5 py-3.5">
-                        <div class="flex items-start gap-3">
+                    <td class="px-4 py-3">
+                        <div class="flex items-center gap-3">
                             <div
-                                class="w-10 h-10 rounded-lg border border-slate-200 bg-slate-50 flex items-center justify-center shrink-0 overflow-hidden">
+                                class="w-9 h-9 rounded-lg border border-slate-200 bg-slate-50 flex items-center justify-center shrink-0 overflow-hidden">
                                 @if ($article->featured_image_path)
                                     <img src="{{ asset('storage/' . $article->featured_image_path) }}"
                                         alt="{{ $article->image_alt_text }}" class="w-full h-full object-cover">
@@ -97,9 +100,10 @@
                                 @endif
                             </div>
                             <div class="min-w-0">
-                                <span class="font-bold block text-slate-800 truncate max-w-xs">{{ $article->title }}</span>
                                 <span
-                                    class="text-[10px] text-slate-400 font-mono truncate block">{{ $article->slug }}</span>
+                                    class="font-semibold block text-slate-800 truncate max-w-[240px]">{{ $article->title }}</span>
+                                <span
+                                    class="text-[10px] text-slate-400 font-mono truncate block max-w-[240px]">{{ $article->slug }}</span>
                                 <div class="flex flex-wrap gap-1 mt-1">
                                     @foreach ($article->categories as $category)
                                         <span
@@ -109,33 +113,50 @@
                             </div>
                         </div>
                     </td>
-                    <td class="px-5 py-3.5 text-center">
+                    <td class="px-4 py-3 text-center">
                         <span
-                            class="inline-flex items-center justify-center w-10 h-10 rounded-full text-xs font-bold bg-{{ $scoreColor }}-50 text-{{ $scoreColor }}-700 border border-{{ $scoreColor }}-200/70">
+                            class="inline-flex items-center justify-center w-9 h-9 rounded-full text-xs font-bold bg-{{ $scoreColor }}-50 text-{{ $scoreColor }}-700 border border-{{ $scoreColor }}-200/70">
                             {{ $score }}
                         </span>
                     </td>
-                    <td class="px-5 py-3.5">
+                    <td class="px-4 py-3">
                         <div class="space-y-1.5">
                             @forelse ($article->sitePublications as $pub)
                                 @php
                                     [$pLabel, $pColor] = $statusMap[$pub->status] ?? ['—', 'slate'];
                                     $published = $pub->status === 'published';
+                                    $postUrl = $published
+                                        ? ($pub->published_url ?:
+                                        ($pub->wp_post_id && $pub->wpSite
+                                            ? rtrim($pub->wpSite->site_url, '/') . '/?p=' . $pub->wp_post_id
+                                            : null))
+                                        : null;
+                                    // Bisa di-unpublish bila post sudah pernah dibuat di WP (ada wp_post_id).
+                                    $canUnpublish = (bool) ($pub->wp_post_id && $pub->wpSite);
                                 @endphp
                                 <div class="flex items-center gap-1.5">
                                     <span class="w-1.5 h-1.5 rounded-full bg-{{ $pColor }}-500 shrink-0"></span>
                                     <div class="min-w-0 flex-1">
-                                        @if ($published && $pub->published_url)
-                                            <a href="{{ $pub->published_url }}" target="_blank" rel="noopener"
-                                                class="text-[11px] text-slate-700 hover:text-[#C59B27] truncate block max-w-[140px]"
-                                                title="Buka di WordPress">{{ $pub->wpSite->site_name ?? 'Situs #' . $pub->wp_site_id }}</a>
+                                        @if ($published && $postUrl)
+                                            <a href="{{ $postUrl }}" target="_blank" rel="noopener"
+                                                class="inline-flex items-center gap-1 text-[11px] font-medium text-[#C59B27] hover:text-[#8a6d15] hover:underline truncate block max-w-[160px]"
+                                                title="Buka artikel di {{ $pub->wpSite->site_name ?? 'WordPress' }}">
+                                                <span
+                                                    class="truncate">{{ $pub->wpSite->site_name ?? 'Situs #' . $pub->wp_site_id }}</span>
+                                                <svg class="w-2.5 h-2.5 shrink-0" fill="none" stroke="currentColor"
+                                                    viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                                </svg>
+                                            </a>
                                         @else
                                             <span
-                                                class="text-[11px] text-slate-600 truncate block max-w-[140px]">{{ $pub->wpSite->site_name ?? 'Situs #' . $pub->wp_site_id }}</span>
+                                                class="text-[11px] text-slate-600 truncate block max-w-[160px]">{{ $pub->wpSite->site_name ?? 'Situs #' . $pub->wp_site_id }}</span>
                                         @endif
-                                        <span class="text-[9px] text-{{ $pColor }}-600 font-semibold uppercase">{{ $pLabel }}</span>
+                                        <span
+                                            class="text-[9px] text-{{ $pColor }}-600 font-semibold uppercase">{{ $pLabel }}</span>
                                     </div>
-                                    @if ($published && $pub->wpSite)
+                                    @if ($canUnpublish)
                                         <form action="{{ route('articles.sites.destroy', [$article, $pub->wpSite]) }}"
                                             method="POST" class="inline"
                                             onsubmit="return confirm('Hapus publikasi dari {{ $pub->wpSite->site_name }}?');">
@@ -144,7 +165,8 @@
                                             <button type="submit"
                                                 class="text-rose-400 hover:text-rose-600 p-0.5 transition shrink-0"
                                                 title="Unpublish dari situs ini">
-                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor"
+                                                    viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                         d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                                 </svg>
@@ -157,98 +179,66 @@
                             @endforelse
                         </div>
                     </td>
-                    <td class="px-5 py-3.5 text-center">
+                    <td class="px-4 py-3 text-center">
                         <span
                             class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-{{ $statusColor }}-50 text-{{ $statusColor }}-700 border border-{{ $statusColor }}-200/60">{{ $statusLabel }}</span>
                     </td>
-                    <td class="px-5 py-3.5 text-right whitespace-nowrap space-x-1">
-                        <a href="{{ route('articles.edit', $article) }}"
-                            class="p-1.5 inline-flex bg-amber-50 hover:bg-amber-100 text-[#C59B27] rounded transition"
-                            title="Edit">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                            </svg>
-                        </a>
-
-                        @if ($score >= 80 && in_array($article->status, ['draft', 'failed']))
-                            <form action="{{ route('articles.publish', $article) }}" method="POST" class="inline">
-                                @csrf
-                                <button type="submit"
-                                    class="p-1.5 inline-flex bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded transition"
-                                    title="Publish ke WordPress">
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M5 10l7-7m0 0l7 7m-7-7v18" />
-                                    </svg>
-                                </button>
-                            </form>
-                        @endif
-
-                        @if ($article->status === 'failed')
-                            <form action="{{ route('articles.retry', $article) }}" method="POST" class="inline">
-                                @csrf
-                                <button type="submit"
-                                    class="p-1.5 inline-flex bg-slate-100 hover:bg-slate-200 text-slate-600 rounded transition"
-                                    title="Retry publish">
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                    </svg>
-                                </button>
-                            </form>
-                        @endif
-
-                        {{-- Hapus Artikel + modal konfirmasi --}}
-                        <div x-data="{ deleteOpen: false }" class="inline-block align-middle">
-                            <button type="button" @click="deleteOpen = true"
-                                class="p-1.5 inline-flex bg-rose-50 hover:bg-rose-100 text-rose-500 rounded transition"
-                                title="Hapus Artikel">
+                    <td class="px-4 py-3 whitespace-nowrap">
+                        <div class="flex items-center justify-end gap-1.5">
+                            {{-- Tombol Edit --}}
+                            <a href="{{ route('articles.edit', $article) }}"
+                                class="p-1.5 inline-flex items-center justify-center bg-amber-50 hover:bg-amber-100 text-[#C59B27] rounded transition"
+                                title="Edit">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                 </svg>
-                            </button>
+                            </a>
 
-                            <div x-show="deleteOpen" x-cloak x-transition.opacity
-                                class="fixed inset-0 z-50 flex items-center justify-center p-4">
-                                <div class="absolute inset-0 bg-black/40" @click="deleteOpen = false"></div>
-                                <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-6"
-                                    @keydown.escape.window="deleteOpen = false">
-                                    <div class="flex items-start gap-3">
-                                        <div
-                                            class="w-10 h-10 rounded-full bg-rose-50 flex items-center justify-center shrink-0">
-                                            <svg class="w-5 h-5 text-rose-500" fill="none" stroke="currentColor"
-                                                viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                                            </svg>
-                                        </div>
-                                        <div>
-                                            <h3 class="text-sm font-bold text-slate-800">Hapus Artikel?</h3>
-                                            <p class="text-xs text-slate-500 mt-1 leading-relaxed">
-                                                "<span class="font-semibold text-slate-700">{{ $article->title }}</span>"
-                                                beserta post-nya di seluruh situs WordPress target akan dihapus
-                                                permanen. Tindakan ini tidak dapat dibatalkan.
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <div class="flex justify-end gap-2 mt-5">
-                                        <button type="button" @click="deleteOpen = false"
-                                            class="px-3.5 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition">
-                                            Batal
-                                        </button>
-                                        <form action="{{ route('articles.destroy', $article) }}" method="POST">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit"
-                                                class="px-3.5 py-2 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-lg transition">
-                                                Ya, Hapus
-                                            </button>
-                                        </form>
-                                    </div>
-                                </div>
-                            </div>
+                            {{-- Tombol Publish --}}
+                            @if ($article->status === 'draft' && $score >= 80)
+                                <form action="{{ route('articles.publish', $article) }}" method="POST"
+                                    class="inline-flex">
+                                    @csrf
+                                    <button type="submit"
+                                        class="p-1.5 inline-flex items-center justify-center bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded transition"
+                                        title="Publish ke WordPress">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                                        </svg>
+                                    </button>
+                                </form>
+                            @endif
+
+                            {{-- Tombol Retry --}}
+                            @if ($article->status === 'failed')
+                                <form action="{{ route('articles.retry', $article) }}" method="POST"
+                                    class="inline-flex">
+                                    @csrf
+                                    <button type="submit"
+                                        class="p-1.5 inline-flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-600 rounded transition"
+                                        title="Retry publish">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                        </svg>
+                                    </button>
+                                </form>
+                            @endif
+
+                            {{-- Hapus Artikel + Modal Konfirmasi --}}
+                            <x-delete-modal action="{{ route('articles.destroy', $article) }}" title="Hapus Artikel?">
+
+                                <x-slot:message>
+                                    "<span class="font-semibold text-slate-700">{{ $article->title }}</span>" beserta
+                                    post-nya di seluruh situs WordPress target akan dihapus permanen. Tindakan ini tidak
+                                    dapat dibatalkan.
+                                </x-slot:message>
+
+                            </x-delete-modal>
                         </div>
                     </td>
                 </tr>

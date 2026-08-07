@@ -102,38 +102,13 @@
                                     d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                             </svg>
                         </a>
-                        <div x-data="{ open: false }" class="inline-block">
-                            <button @click="open = true"
-                                class="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded transition" title="Hapus">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                </svg>
-                            </button>
-
-                            <!-- Delete Modal -->
-                            <div x-show="open" style="display: none;"
-                                class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
-                                <div @click.away="open = false"
-                                    class="bg-white rounded-xl max-w-sm w-full p-5 shadow-lg border border-slate-200 text-left">
-                                    <h4 class="text-sm font-bold text-slate-900 mb-1">Hapus Perusahaan?</h4>
-                                    <p class="text-xs text-slate-500 mb-4">Apakah kamu yakin ingin menghapus
-                                        <strong>{{ $company->name }}</strong>? Tindakan ini tidak dapat
-                                        dibatalkan.
-                                    </p>
-                                    <div class="flex justify-end gap-2">
-                                        <button @click="open = false" type="button"
-                                            class="px-3 py-1.5 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg">Batal</button>
-                                        <form action="{{ route('companies.destroy', $company) }}" method="POST">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit"
-                                                class="px-3 py-1.5 text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white rounded-lg">Hapus</button>
-                                        </form>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                        <x-delete-modal action="{{ route('companies.destroy', $company) }}" title="Hapus Perusahaan?">
+                            <x-slot:message>
+                                "<span class="font-semibold text-slate-700">{{ $company->name }}</span>" Data Perusahaan
+                                ini akan
+                                dihapus permanen. Tindakan ini tidak dapat dibatalkan.
+                            </x-slot:message>
+                        </x-delete-modal>
                     </td>
                 </tr>
             @empty

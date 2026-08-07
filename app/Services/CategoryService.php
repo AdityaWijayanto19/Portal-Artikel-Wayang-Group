@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Category;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -10,7 +11,7 @@ class CategoryService
 {
     public function create(array $data): Category
     {
-        return \Illuminate\Support\Facades\DB::transaction(function () use ($data): Category {
+        return DB::transaction(function () use ($data): Category {
             $companyId = $this->resolveCompanyId($data);
 
             return Category::create([
@@ -23,7 +24,7 @@ class CategoryService
 
     public function update(Category $category, array $data): Category
     {
-        return \Illuminate\Support\Facades\DB::transaction(function () use ($category, $data): Category {
+        return DB::transaction(function () use ($category, $data): Category {
             $category->update([
                 'company_id' => $this->resolveCompanyId($data, $category),
                 'name' => $data['name'],

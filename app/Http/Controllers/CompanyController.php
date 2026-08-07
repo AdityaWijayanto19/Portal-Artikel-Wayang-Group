@@ -5,14 +5,19 @@ namespace App\Http\Controllers;
 use App\Http\Requests\Company\StoreCompanyRequest;
 use App\Http\Requests\Company\UpdateCompanyRequest;
 use App\Models\Company;
+use App\Services\ImageService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class CompanyController extends Controller
 {
+    // 2. Inject ImageService via Constructor
+    public function __construct(
+        protected ImageService $imageService
+    ) {}
+
     /**
      * Tampilkan daftar seluruh perusahaan.
      */
@@ -50,9 +55,13 @@ class CompanyController extends Controller
         $validated['slug'] = $validated['slug'] ? Str::slug($validated['slug']) : Str::slug($validated['name']);
         $validated['is_active'] = $request->has('is_active');
 
-        // Handle Upload Logo Perusahaan
+        // Handle Upload Logo Perusahaan via ImageService
         if ($request->hasFile('logo')) {
-            $validated['logo_path'] = $request->file('logo')->store('companies/logos', 'public');
+            // Hasilnya akan tersimpan di: uploads/companies/UUID.webp
+            $validated['logo_path'] = $this->imageService->processUpload(
+                $request->file('logo'),
+                'companies'
+            );
         }
 
         Company::create($validated);
@@ -92,10 +101,16 @@ class CompanyController extends Controller
 
         // Handle Update Logo
         if ($request->hasFile('logo')) {
-            if ($company->logo_path && Storage::disk('public')->exists($company->logo_path)) {
-                Storage::disk('public')->delete($company->logo_path);
+            // 1. Hapus logo lama jika ada lewat ImageService
+            if ($company->logo_path) {
+                $this->imageService->deleteFile($company->logo_path);
             }
-            $validated['logo_path'] = $request->file('logo')->store('companies/logos', 'public');
+
+            // 2. Upload logo baru & konversi ke webp
+            $validated['logo_path'] = $this->imageService->processUpload(
+                $request->file('logo'),
+                'companies'
+            );
         }
 
         $company->update($validated);
@@ -110,8 +125,8 @@ class CompanyController extends Controller
     public function destroy(Company $company): RedirectResponse
     {
         // Hapus logo dari storage jika ada
-        if ($company->logo_path && Storage::disk('public')->exists($company->logo_path)) {
-            Storage::disk('public')->delete($company->logo_path);
+        if ($company->logo_path) {
+            $this->imageService->deleteFile($company->logo_path);
         }
 
         $companyName = $company->name;
