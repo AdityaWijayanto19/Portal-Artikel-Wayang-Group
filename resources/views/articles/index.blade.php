@@ -3,6 +3,10 @@
 @section('title', 'Artikel · ' . $company->name)
 @section('subtitle', 'Susun, nilai SEO, dan publikasikan artikel ke situs WordPress ' . $company->name . '.')
 
+@push('styles')
+    <style>[x-cloak] { display: none !important; }</style>
+@endpush
+
 @section('header_actions')
     <div class="flex items-center gap-2">
         @hasrole('super_admin')
@@ -112,17 +116,41 @@
                         </span>
                     </td>
                     <td class="px-5 py-3.5">
-                        <div class="space-y-1">
+                        <div class="space-y-1.5">
                             @forelse ($article->sitePublications as $pub)
                                 @php
                                     [$pLabel, $pColor] = $statusMap[$pub->status] ?? ['—', 'slate'];
+                                    $published = $pub->status === 'published';
                                 @endphp
                                 <div class="flex items-center gap-1.5">
                                     <span class="w-1.5 h-1.5 rounded-full bg-{{ $pColor }}-500 shrink-0"></span>
-                                    <span
-                                        class="text-[11px] text-slate-600 truncate max-w-[140px]">{{ $pub->wpSite->site_name ?? 'Situs #' . $pub->wp_site_id }}</span>
-                                    <span
-                                        class="text-[9px] text-{{ $pColor }}-600 font-semibold uppercase">{{ $pLabel }}</span>
+                                    <div class="min-w-0 flex-1">
+                                        @if ($published && $pub->published_url)
+                                            <a href="{{ $pub->published_url }}" target="_blank" rel="noopener"
+                                                class="text-[11px] text-slate-700 hover:text-[#C59B27] truncate block max-w-[140px]"
+                                                title="Buka di WordPress">{{ $pub->wpSite->site_name ?? 'Situs #' . $pub->wp_site_id }}</a>
+                                        @else
+                                            <span
+                                                class="text-[11px] text-slate-600 truncate block max-w-[140px]">{{ $pub->wpSite->site_name ?? 'Situs #' . $pub->wp_site_id }}</span>
+                                        @endif
+                                        <span class="text-[9px] text-{{ $pColor }}-600 font-semibold uppercase">{{ $pLabel }}</span>
+                                    </div>
+                                    @if ($published && $pub->wpSite)
+                                        <form action="{{ route('articles.sites.destroy', [$article, $pub->wpSite]) }}"
+                                            method="POST" class="inline"
+                                            onsubmit="return confirm('Hapus publikasi dari {{ $pub->wpSite->site_name }}?');">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit"
+                                                class="text-rose-400 hover:text-rose-600 p-0.5 transition shrink-0"
+                                                title="Unpublish dari situs ini">
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                            </button>
+                                        </form>
+                                    @endif
                                 </div>
                             @empty
                                 <span class="text-[11px] text-slate-400">Belum ada situs target</span>
@@ -170,6 +198,58 @@
                                 </button>
                             </form>
                         @endif
+
+                        {{-- Hapus Artikel + modal konfirmasi --}}
+                        <div x-data="{ deleteOpen: false }" class="inline-block align-middle">
+                            <button type="button" @click="deleteOpen = true"
+                                class="p-1.5 inline-flex bg-rose-50 hover:bg-rose-100 text-rose-500 rounded transition"
+                                title="Hapus Artikel">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </button>
+
+                            <div x-show="deleteOpen" x-cloak x-transition.opacity
+                                class="fixed inset-0 z-50 flex items-center justify-center p-4">
+                                <div class="absolute inset-0 bg-black/40" @click="deleteOpen = false"></div>
+                                <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-6"
+                                    @keydown.escape.window="deleteOpen = false">
+                                    <div class="flex items-start gap-3">
+                                        <div
+                                            class="w-10 h-10 rounded-full bg-rose-50 flex items-center justify-center shrink-0">
+                                            <svg class="w-5 h-5 text-rose-500" fill="none" stroke="currentColor"
+                                                viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <h3 class="text-sm font-bold text-slate-800">Hapus Artikel?</h3>
+                                            <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+                                                "<span class="font-semibold text-slate-700">{{ $article->title }}</span>"
+                                                beserta post-nya di seluruh situs WordPress target akan dihapus
+                                                permanen. Tindakan ini tidak dapat dibatalkan.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div class="flex justify-end gap-2 mt-5">
+                                        <button type="button" @click="deleteOpen = false"
+                                            class="px-3.5 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition">
+                                            Batal
+                                        </button>
+                                        <form action="{{ route('articles.destroy', $article) }}" method="POST">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit"
+                                                class="px-3.5 py-2 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-lg transition">
+                                                Ya, Hapus
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </td>
                 </tr>
             @empty

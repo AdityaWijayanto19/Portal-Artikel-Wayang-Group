@@ -26,8 +26,7 @@ class PublishArticleToWordPressJob implements ShouldQueue
     public function __construct(
         public readonly int $articleId,
         public readonly int $wpSiteId,
-    ) {
-    }
+    ) {}
 
     public function handle(WordPressPublisherService $publisher): void
     {
@@ -45,6 +44,7 @@ class PublishArticleToWordPressJob implements ShouldQueue
             $this->updatePublication($article, $site, [
                 'wp_post_id' => $result['wp_post_id'] ?? null,
                 'wp_media_id' => $result['wp_media_id'] ?? null,
+                'published_url' => $result['published_url'] ?? null,
                 'status' => 'published',
                 'response_message' => $result['message'] ?? 'Published successfully.',
                 'synced_at' => now(),

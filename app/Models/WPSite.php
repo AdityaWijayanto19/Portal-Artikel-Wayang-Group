@@ -3,8 +3,8 @@
 namespace App\Models;
 
 use App\Models\Scopes\TenantScope;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -16,10 +16,11 @@ class WPSite extends Model
 
     protected static function booted(): void
     {
-        static::addGlobalScope(new TenantScope());
+        static::addGlobalScope(new TenantScope);
     }
 
     protected $table = 'wp_sites';
+
     protected $guarded = ['id'];
 
     protected $fillable = [
@@ -35,6 +36,17 @@ class WPSite extends Model
         return [
             'wp_app_password' => 'encrypted',
         ];
+    }
+
+    /**
+     * Application password tanpa spasi — WordPress Basic Auth mewajibkan format ini.
+     * App password WP ditampilkan bergrup 4 karakter ("xxxx xxxx ...") tetapi saat
+     * dipakai sebagai HTTP Basic Auth seluruh spasi HARUS dibuang, jika tidak
+     * WordPress membalas 401 rest_cannot_create / rest_not_logged_in.
+     */
+    public function appPassword(): string
+    {
+        return preg_replace('/\s+/', '', (string) $this->wp_app_password) ?? '';
     }
 
     public function company(): BelongsTo

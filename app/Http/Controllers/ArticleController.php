@@ -15,13 +15,12 @@ use App\Services\ArticleService;
 use App\Support\ArticleContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\View\View;
 
 class ArticleController extends Controller
 {
-    public function __construct(private readonly ArticleService $articleService)
-    {
-    }
+    public function __construct(private readonly ArticleService $articleService) {}
 
     /**
      * Halaman utama artikel.
@@ -153,10 +152,36 @@ class ArticleController extends Controller
     }
 
     /**
+     * Hapus artikel (record lokal + post WordPress di semua situs target terpublikasi).
+     */
+    public function destroy(Article $article): RedirectResponse
+    {
+        $this->articleService->delete($article);
+
+        return redirect()->route('articles.index')
+            ->with('success', 'Artikel berhasil dihapus beserta post-nya dari situs WordPress target.');
+    }
+
+    /**
+     * Hapus/unpublish publikasi artikel pada SATU situs WordPress.
+     */
+    public function destroySite(Article $article, int $wpSite): RedirectResponse
+    {
+        $publication = $article->sitePublications()
+            ->where('wp_site_id', $wpSite)
+            ->with('wpSite')
+            ->firstOrFail();
+
+        $this->articleService->deleteSitePublication($article, $publication);
+
+        return back()->with('success', 'Publikasi dihapus dari situs "'.($publication->wpSite->site_name ?? '#'.$wpSite).'".');
+    }
+
+    /**
      * Data pilihan form (kategori, tag, situs WP) yang DIISOLASI pada satu perusahaan.
      * Query eksplisit where company_id mencegah kebocoran data antar-tenant.
      *
-     * @return array{categories: \Illuminate\Support\Collection, tags: \Illuminate\Support\Collection, wpSites: \Illuminate\Support\Collection}
+     * @return array{categories: Collection, tags: Collection, wpSites: Collection}
      */
     private function companyFormData(int $companyId): array
     {
@@ -165,7 +190,7 @@ class ArticleController extends Controller
             // jadi isolasi ditegakkan lewat filter eksplisit where('company_id', ...) di sini.
             'categories' => Category::query()->withoutGlobalScope(TenantScope::class)->where('company_id', $companyId)->orderBy('name')->get(),
             'tags' => Tag::query()->withoutGlobalScope(TenantScope::class)->where('company_id', $companyId)->orderBy('name')->get(),
-            'wpSites' => WPSite::query()->withoutGlobalScope(TenantScope::class)->where('company_id', $companyId)->orderBy('site_name')->get(),
+            'wpSites' => WPSite::query()->withoutGlobalScope(TenantScope::class)->where('company_id', $companyId)->with('categories')->orderBy('site_name')->get(),
             // Author = user pada company aktif. Dipakai untuk sinkronisasi author WordPress
             // (WpAuthorResolverService memetakan `username` user ini ke WP user saat publish).
             'authors' => User::query()->where('company_id', $companyId)->orderBy('name')->get(),

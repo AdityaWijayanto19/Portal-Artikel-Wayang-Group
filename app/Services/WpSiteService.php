@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\WPSite;
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\ValidationException;
 
@@ -11,7 +12,9 @@ class WpSiteService
 {
     public function create(array $data): WPSite
     {
-        return \Illuminate\Support\Facades\DB::transaction(function () use ($data): WPSite {
+        return DB::transaction(function () use ($data): WPSite {
+            $data['wp_app_password'] = $this->normalizeAppPassword($data['wp_app_password']);
+
             $this->verifyWordPressCredentials($data['site_url'], $data['wp_username'], $data['wp_app_password']);
 
             $wpSite = WPSite::create([
@@ -30,6 +33,8 @@ class WpSiteService
 
     public function update(WPSite $wpSite, array $data): WPSite
     {
+        $data['wp_app_password'] = $this->normalizeAppPassword($data['wp_app_password']);
+
         $this->verifyWordPressCredentials($data['site_url'], $data['wp_username'], $data['wp_app_password']);
 
         $wpSite->update([
@@ -86,7 +91,7 @@ class WpSiteService
 
         try {
             $response = Http::baseUrl(rtrim($siteUrl, '/').'/wp-json/wp/v2')
-                ->withBasicAuth($username, $appPassword)
+                ->withBasicAuth($username, $this->normalizeAppPassword($appPassword))
                 ->acceptJson()
                 ->timeout(15)
                 ->get('/users/me');
@@ -104,6 +109,16 @@ class WpSiteService
             'wp_username' => 'Username WordPress atau Application Password tidak valid untuk site ini.',
             'wp_app_password' => 'Username WordPress atau Application Password tidak valid untuk site ini.',
         ]);
+    }
+
+    /**
+     * App password WP tampil bergrup 4 ("xxxx xxxx xxxx") tetapi wajib tanpa spasi
+     * saat dipakai sebagai HTTP Basic Auth. Normalisasi di titik penyimpanan agar
+     * nilai di DB selalu bersih.
+     */
+    protected function normalizeAppPassword(string $appPassword): string
+    {
+        return preg_replace('/\s+/', '', $appPassword) ?? $appPassword;
     }
 
     protected function shouldBypassVerification(string $siteUrl): bool

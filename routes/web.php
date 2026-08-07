@@ -59,5 +59,7 @@ Route::middleware('auth')->group(function () {
         Route::put('/articles/{article}', [ArticleController::class, 'update'])->name('articles.update');
         Route::post('/articles/{article}/publish', [ArticleController::class, 'publish'])->name('articles.publish');
         Route::post('/articles/{article}/retry', [ArticleController::class, 'retry'])->name('articles.retry');
+        Route::delete('/articles/{article}', [ArticleController::class, 'destroy'])->name('articles.destroy');
+        Route::delete('/articles/{article}/sites/{wpSite}', [ArticleController::class, 'destroySite'])->name('articles.sites.destroy');
     });
 });

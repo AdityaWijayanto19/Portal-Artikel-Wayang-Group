@@ -17,6 +17,7 @@ class ArticleSitePublication extends Model
         'wp_site_id',
         'wp_post_id',
         'wp_media_id',
+        'published_url',
         'status',
         'response_message',
         'synced_at',

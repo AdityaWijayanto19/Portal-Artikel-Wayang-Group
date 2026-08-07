@@ -202,7 +202,12 @@
     </div>
 
     {{-- ================= KOLOM KANAN: PUBLIKASI & MEDIA ================= --}}
-    <div class="lg:col-span-4 space-y-5 lg:sticky lg:top-4">
+    <div class="lg:col-span-4 space-y-5 lg:sticky lg:top-4"
+        x-data="siteLinker({
+            selectedCategories: @js($selectedCategories),
+            selectedSites: @js($selectedSites),
+            siteCategories: @js($wpSites->map(fn ($s) => ['id' => $s->id, 'categories' => $s->categories->pluck('id')->all()])->values()->all()),
+        })">
 
         {{-- Aksi Publikasi (status + submit) --}}
         <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 space-y-3">
@@ -245,21 +250,41 @@
         </div>
 
         {{-- Author (sinkron ke user WordPress) --}}
+        @php
+            $canChooseAuthor = auth()->user()?->isSuperAdmin() || auth()->user()?->isAdmin();
+        @endphp
         <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 space-y-2">
             <label for="user_id" class="block text-xs font-bold text-slate-700 uppercase tracking-wider">
                 Author <span class="text-rose-500">*</span>
             </label>
-            <select name="user_id" id="user_id"
-                class="w-full bg-white text-slate-800 text-xs border border-slate-300 rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-[#C59B27] focus:ring-1 focus:ring-[#C59B27] transition">
-                @forelse ($authors as $author)
-                    <option value="{{ $author->id }}" {{ (int) $selectedAuthor === $author->id ? 'selected' : '' }}>
-                        {{ $author->name }}@if(!empty($author->username)) &middot; {{ $author->username }}@endif
-                    </option>
-                @empty
-                    <option value="{{ auth()->id() }}" selected>{{ auth()->user()->name }}</option>
-                @endforelse
-            </select>
-            <p class="text-[10px] text-slate-400">Artikel dipublish atas nama author ini di WordPress (bukan user default).</p>
+
+            @if ($canChooseAuthor)
+                <select name="user_id" id="user_id"
+                    class="w-full bg-white text-slate-800 text-xs border border-slate-300 rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-[#C59B27] focus:ring-1 focus:ring-[#C59B27] transition">
+                    @forelse ($authors as $author)
+                        <option value="{{ $author->id }}" {{ (int) $selectedAuthor === $author->id ? 'selected' : '' }}>
+                            {{ $author->name }}@if(!empty($author->username)) &middot; {{ $author->username }}@endif
+                        </option>
+                    @empty
+                        <option value="{{ auth()->id() }}" selected>{{ auth()->user()->name }}</option>
+                    @endforelse
+                </select>
+                <p class="text-[10px] text-slate-400">Artikel dipublish atas nama author ini di WordPress (bukan user default).</p>
+            @else
+                {{-- Role Author: terkunci ke akun yang sedang login. --}}
+                <input type="hidden" name="user_id" value="{{ auth()->id() }}">
+                <div
+                    class="w-full flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-500">
+                    <svg class="w-3.5 h-3.5 text-slate-400 shrink-0" fill="none" stroke="currentColor"
+                        viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                    <span>{{ auth()->user()->name }}</span>
+                </div>
+                <p class="text-[10px] text-slate-400">Author terkunci ke akun Anda. Hubungi admin untuk mengubah author.</p>
+            @endif
+
             @error('user_id')
                 <p class="text-[11px] text-rose-500 font-medium">{{ $message }}</p>
             @enderror
@@ -274,7 +299,8 @@
                 @forelse ($categories as $category)
                     <label class="flex items-center gap-2 cursor-pointer">
                         <input type="checkbox" name="categories[]" value="{{ $category->id }}"
-                            {{ in_array($category->id, $selectedCategories) ? 'checked' : '' }}
+                            :checked="selectedCategories.includes('{{ $category->id }}')"
+                            @change="onCategoryToggle('{{ $category->id }}', $el.checked)"
                             class="w-4 h-4 rounded border-slate-300 text-[#C59B27] accent-[#C59B27] focus:ring-[#C59B27]">
                         <span class="text-xs text-slate-700">{{ $category->name }}</span>
                     </label>
@@ -296,7 +322,8 @@
             @forelse ($wpSites as $site)
                 <label class="flex items-center gap-2 cursor-pointer">
                     <input type="checkbox" name="wp_site_ids[]" value="{{ $site->id }}"
-                        {{ in_array($site->id, $selectedSites) ? 'checked' : '' }}
+                        :checked="selectedSites.includes('{{ $site->id }}')"
+                        @change="onSiteToggle('{{ $site->id }}', $el.checked)"
                         class="w-4 h-4 rounded border-slate-300 text-[#C59B27] accent-[#C59B27] focus:ring-[#C59B27]">
                     <span class="text-xs text-slate-700">{{ $site->site_name }}</span>
                 </label>
@@ -317,6 +344,87 @@
 
 @push('scripts')
     <script>
+        /**
+         * Mesin SEO realtime — CERMINAN sisi klien dari SeoAnalyzerService (PHP).
+         * Hanya untuk UX; gatekeeper sebenarnya tetap dihitung ulang di server.
+         */
+        function siteLinker(initial) {
+            // Peta relasi kategori ↔ situs dari data server (tabel wp_site_category).
+            const sitesForCategory = {};   // categoryId → [siteId]
+            initial.siteCategories.forEach(s => {
+                const siteId = String(s.id);
+                s.categories.forEach(cid => {
+                    (sitesForCategory[String(cid)] = sitesForCategory[String(cid)] || []).push(siteId);
+                });
+            });
+
+            return {
+                selectedCategories: [],
+                selectedSites: [],
+                // Override manual user terhadap auto-sync (objek dipakai sebagai Set).
+                manualChecked: {},
+                manualUnchecked: {},
+
+                init() {
+                    this.selectedCategories = (initial.selectedCategories || []).map(String);
+                    // Edit mode: pisahkan pilihan awal jadi "auto" (berasal dari kategori)
+                    // vs "manual" (pilihan tersendiri), agar uncheck kategori hanya
+                    // menghapus situs yang memang tersinkron dengannya.
+                    const auto = this.autoSites();
+                    (initial.selectedSites || []).forEach(id => {
+                        const sid = String(id);
+                        if (!auto.has(sid)) this.manualChecked[sid] = true;
+                    });
+                    this.recomputeSites();
+                },
+
+                // Situs yang tersinkron dengan kategori yang sedang tercentang.
+                autoSites() {
+                    const set = new Set();
+                    this.selectedCategories.forEach(cid => {
+                        (sitesForCategory[cid] || []).forEach(sid => set.add(sid));
+                    });
+                    return set;
+                },
+
+                // Rumus pilihan akhir:
+                //   (auto dari kategori) + (manual checked) − (manual unchecked)
+                recomputeSites() {
+                    const next = new Set();
+                    this.autoSites().forEach(sid => next.add(sid));
+                    Object.keys(this.manualChecked).forEach(sid => next.add(sid));
+                    Object.keys(this.manualUnchecked).forEach(sid => next.delete(sid));
+                    this.selectedSites = [...next];
+                },
+
+                // Trigger dari checkbox kategori: centang → situs terkait ikut centang;
+                // uncentang → situs terkait ikut uncentang (kecuali masih tersinkron
+                // oleh kategori lain yang tetap tercentang).
+                onCategoryToggle(categoryId, checked) {
+                    const cid = String(categoryId);
+                    if (checked) {
+                        if (!this.selectedCategories.includes(cid)) this.selectedCategories.push(cid);
+                    } else {
+                        this.selectedCategories = this.selectedCategories.filter(c => c !== cid);
+                    }
+                    this.recomputeSites();
+                },
+
+                // Manual toggle langsung pada checkbox situs (tetap fleksibel).
+                onSiteToggle(siteId, checked) {
+                    const sid = String(siteId);
+                    if (checked) {
+                        this.manualChecked[sid] = true;
+                        delete this.manualUnchecked[sid];
+                    } else {
+                        this.manualUnchecked[sid] = true;
+                        delete this.manualChecked[sid];
+                    }
+                    this.recomputeSites();
+                },
+            };
+        }
+
         /**
          * Mesin SEO realtime — CERMINAN sisi klien dari SeoAnalyzerService (PHP).
          * Hanya untuk UX; gatekeeper sebenarnya tetap dihitung ulang di server.

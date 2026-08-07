@@ -11,7 +11,7 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -22,14 +22,11 @@ class ArticleService
      */
     private const MIN_PUBLISH_SCORE = 80;
 
-    private const IMAGE_DISK = 'public';
-
-    private const IMAGE_DIR = 'articles/featured_images';
-
     public function __construct(
         private readonly SeoAnalyzerService $seoAnalyzer,
-    ) {
-    }
+        private readonly ImageService $imageService,
+        private readonly WordPressPublisherService $wpPublisher,
+    ) {}
 
     /**
      * Simpan artikel baru beserta relasi (kategori, tag, situs) & metadata SEO.
@@ -181,6 +178,86 @@ class ArticleService
     }
 
     /**
+     * Hapus artikel lintas platform: hapus post di SEMUA situs WordPress target yang
+     * sudah terpublikasi (memiliki wp_post_id), lalu hapus record di database.
+     *
+     * Kegagalan menghapus post di satu situs tidak menghentikan penghapusan situs
+     * lain / record lokal; hanya dicatat log warning.
+     */
+    public function delete(Article $article): void
+    {
+        $publications = $article->sitePublications()
+            ->whereNotNull('wp_post_id')
+            ->with('wpSite')
+            ->get();
+
+        foreach ($publications as $publication) {
+            $site = $publication->wpSite;
+
+            if (! $site || ! $publication->wp_post_id) {
+                continue;
+            }
+
+            try {
+                $this->wpPublisher->deleteFromWordPress($site, (int) $publication->wp_post_id);
+            } catch (\Throwable $e) {
+                Log::warning("Gagal hapus WP post #{$publication->wp_post_id} pada '{$site->site_name}': ".$e->getMessage());
+            }
+        }
+
+        $this->deleteFeaturedImage($article->featured_image_path);
+
+        $article->delete();
+    }
+
+    /**
+     * Hapus publikasi artikel pada SATU situs WordPress (unpublish per-situs):
+     * hapus post di WP, hapus baris mapping article_site_publications, lalu
+     * hitung ulang status agregat artikel.
+     */
+    public function deleteSitePublication(Article $article, ArticleSitePublication $publication): void
+    {
+        $site = $publication->wpSite;
+
+        if ($site && $publication->wp_post_id) {
+            try {
+                $this->wpPublisher->deleteFromWordPress($site, (int) $publication->wp_post_id);
+            } catch (\Throwable $e) {
+                Log::warning("Gagal hapus WP post #{$publication->wp_post_id} pada '{$site->site_name}': ".$e->getMessage());
+            }
+        }
+
+        $publication->delete();
+
+        $this->recomputeArticleStatus($article);
+    }
+
+    /**
+     * Status artikel = agregat dari seluruh publikasi situs yang tersisa:
+     * - semua published  => published
+     * - ada yang failed   => failed
+     * - selain itu        => queued (atau draft bila tidak ada publikasi)
+     */
+    private function recomputeArticleStatus(Article $article): void
+    {
+        $statuses = $article->sitePublications()->pluck('status');
+
+        if ($statuses->isEmpty()) {
+            $article->update(['status' => 'draft']);
+
+            return;
+        }
+
+        $status = match (true) {
+            $statuses->every(fn ($s) => $s === 'published') => 'published',
+            $statuses->contains('failed') => 'failed',
+            default => 'queued',
+        };
+
+        $article->update(['status' => $status]);
+    }
+
+    /**
      * Daftar artikel per company dengan eager loading (cegah N+1).
      */
     public function listForCompany(int $companyId): Collection
@@ -237,7 +314,6 @@ class ArticleService
         $ids = [];
 
         foreach ($tags as $tag) {
-            // Dukung ID numerik (tag lama) maupun nama (tag freeform baru).
             if (is_numeric($tag)) {
                 $ids[] = (int) $tag;
 
@@ -270,7 +346,6 @@ class ArticleService
     {
         $siteIds = array_values(array_unique(array_map('intval', $siteIds)));
 
-        // Hapus situs yang tidak lagi dipilih.
         $article->sitePublications()
             ->whereNotIn('wp_site_id', $siteIds ?: [0])
             ->delete();
@@ -302,15 +377,21 @@ class ArticleService
         );
     }
 
-    private function storeFeaturedImage(UploadedFile $image): string
+    /**
+     * Proses simpan featured image via ImageService (otomatis konversi WebP & resize).
+     */
+    private function storeFeaturedImage(UploadedFile $image): ?string
     {
-        return $image->store(self::IMAGE_DIR, self::IMAGE_DISK);
+        return $this->imageService->processUpload($image, 'articles');
     }
 
+    /**
+     * Hapus file featured image via ImageService.
+     */
     private function deleteFeaturedImage(?string $path): void
     {
-        if ($path && Storage::disk(self::IMAGE_DISK)->exists($path)) {
-            Storage::disk(self::IMAGE_DISK)->delete($path);
+        if ($path) {
+            $this->imageService->deleteFile($path);
         }
     }
 
