@@ -26,6 +26,8 @@ class ImageService
 
     public function processUpload(UploadedFile $file, string $folder = 'projects'): ?string
     {
+        $start = microtime(true);
+
         try {
             $storagePath = self::STORAGE_PATH . "/{$folder}";
 
@@ -33,14 +35,18 @@ class ImageService
                 Storage::disk('public')->makeDirectory($storagePath, 0755, true);
             }
 
+            $decodeStart = microtime(true);
             $image = $this->imageManager->decodePath($file->getRealPath());
+            $decodeMs = round((microtime(true) - $decodeStart) * 1000, 2);
             $filename = Str::uuid() . '.webp';
 
             if ($image->width() > self::MAIN_WIDTH) {
                 $image = $image->scaleDown(width: self::MAIN_WIDTH);
             }
 
+            $encodeStart = microtime(true);
             $encoded = $image->encodeUsingFormat(Format::WEBP, quality: self::WEBP_QUALITY);
+            $encodeMs = round((microtime(true) - $encodeStart) * 1000, 2);
 
             $fullPath = "{$storagePath}/{$filename}";
             $storagePath = Storage::disk('public')->path($fullPath);
@@ -49,16 +55,23 @@ class ImageService
                 mkdir(dirname($storagePath), 0755, true);
             }
 
+            $saveStart = microtime(true);
             $encoded->save($storagePath);
+            $saveMs = round((microtime(true) - $saveStart) * 1000, 2);
 
             if (!file_exists($storagePath)) {
                 throw new \Exception("Failed to verify saved file at {$storagePath}");
             }
 
-            Log::debug("Image saved: {$fullPath}", [
+            Log::info('Image processed', [
                 'width' => $image->width(),
                 'height' => $image->height(),
                 'size' => filesize($storagePath),
+                'orig_bytes' => $file->getSize(),
+                'decode_ms' => $decodeMs,
+                'encode_ms' => $encodeMs,
+                'save_ms' => $saveMs,
+                'total_ms' => round((microtime(true) - $start) * 1000, 2),
             ]);
 
             return $fullPath;

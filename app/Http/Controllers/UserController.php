@@ -10,6 +10,7 @@ use App\Services\UserService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 use Spatie\Permission\Models\Role;
 
@@ -25,9 +26,6 @@ class UserController extends Controller
     public function index(Request $request): View
     {
         $currentUser = auth()->user();
-
-        // Tenant aktif mengikuti dropdown navigasi (session). User biasa dikunci
-        // ke company_id mereka; super_admin ikut pilihan tenant aktif ('all' = semua).
         $activeCompanyId = $currentUser->isSuperAdmin()
             ? session('active_company_id', 'all')
             : $currentUser->company_id;
@@ -53,15 +51,13 @@ class UserController extends Controller
 
     public function create()
     {
+
         $authUser = Auth::user();
 
         if ($authUser->hasRole('super_admin')) {
-            // Superadmin: Bebas pilih semua perusahaan & role selain super_admin
             $companies = Company::orderBy('name')->get();
             $roles = Role::where('name', '!=', 'super_admin')->get();
         } else {
-            // Admin Tenant: Hanya bisa mendaftarkan ke perusahaannya sendiri & role dikunci 'author'
-            // Mengambil perusahaan aktif dari session tenant/auth user
             $companies = Company::where('id', session('active_company_id', $authUser->company_id))->get();
             $roles = Role::where('name', 'author')->get();
         }
@@ -85,80 +81,93 @@ class UserController extends Controller
 
     public function store(StoreUserRequest $request)
     {
-        $authUser = Auth    ::user();
+        try {
+            $authUser = Auth::user();
 
-        // Validasi Dasar
-        $rules = [
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
-            'username' => 'required|string|unique:users,username',
-            'password' => 'required|string|min:8|confirmed',
-        ];
+            if ($authUser->hasRole('super_admin')) {
+                $validated = $request->validated();
+                $role = $validated['role'];
+                $companyId = $role === 'super_admin' ? null : (int) $validated['company_id'];
+            } else {
+                $role = 'author';
+                $activeCompanyId = session('active_company_id', $authUser->company_id);
+                $companyId = (int) (($activeCompanyId && $activeCompanyId !== 'all') ? $activeCompanyId : $authUser->company_id);
+            }
 
-        if ($authUser->hasRole('super_admin')) {
-            $rules['company_id'] = 'required|exists:companies,id';
-            $rules['role'] = 'required|exists:roles,name';
-        } else {
-            // memaksa company_id & role jika diinput oleh Admin
-            $request->merge([
-                'company_id' => session('active_company_id', $authUser->company_id),
-                'role' => 'author',
+            // proses Simpan User
+            $user = User::create([
+                'name' => $request->validated('name'),
+                'email' => $request->validated('email'),
+                'username' => strtolower(trim($request->validated('username'))),
+                'password' => bcrypt($request->validated('password')),
+                'company_id' => $companyId,
             ]);
 
-            $rules['company_id'] = 'required|exists:companies,id';
-            $rules['role'] = 'required|in:author';
+            // Attach Role & Pivot Company
+            $user->assignRole($role);
+
+            if ($companyId) {
+                $user->companies()->sync([$companyId]);
+            }
+
+            return redirect()->route('users.index')->with('success', 'Pengguna berhasil ditambahkan.');
+        } catch (\Throwable $th) {
+            Log::error('Gagal menambahkan pengguna: ' . $th->getMessage());
+            return back()
+                ->with('error', 'Terjadi kesalahan sistem. Gagal menambahkan pengguna.')
+                ->withInput();
         }
-
-        $validated = $request->validate($rules);
-
-        // proses Simpan User
-        $user = User::create([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'username' => $validated['username'],
-            'password' => bcrypt($validated['password']),
-            'company_id' => $validated['company_id'], // jika pakai single tenancy di user
-        ]);
-
-        // Attach Role & Pivot Company
-        $user->assignRole($validated['role']);
-        $user->companies()->sync([$validated['company_id']]);
-
-        return redirect()->route('users.index')->with('success', 'User berhasil ditambahkan.');
     }
 
     public function update(UpdateUserRequest $request, User $user): RedirectResponse
     {
-        $currentUser = auth()->user();
+        try {
+            $currentUser = auth()->user();
 
-        // Security check: Admin PIC tidak boleh update user luar tenant
-        if (! $currentUser->isSuperAdmin() && $user->company_id !== $currentUser->company_id) {
-            abort(403, 'Anda tidak memiliki akses untuk mengubah user ini.');
+            if (! $currentUser->isSuperAdmin() && $user->company_id !== $currentUser->company_id) {
+                abort(403, 'Anda tidak memiliki akses untuk mengubah user ini.');
+            }
+
+            $role = $currentUser->isSuperAdmin()
+                ? $request->validated('role')
+                : ($user->roles->first()?->name ?? 'author');
+
+            $targetCompanyId = $currentUser->isSuperAdmin()
+                ? ($role === 'super_admin' ? null : (int) $request->validated('company_id'))
+                : $user->company_id;
+
+            $this->userService->updateUser($user, $request->validated(), $targetCompanyId, $role);
+
+            return redirect()->route('users.index')->with('success', 'Data user berhasil diperbarui.');
+        } catch (\Throwable $th) {
+            Log::error('Gagal memperbarui pengguna: ' . $th->getMessage());
+            return back()
+                ->with('error', 'Terjadi kesalahan sistem. Gagal memperbarui pengguna.')
+                ->withInput();
         }
-
-        $targetCompanyId = $currentUser->isSuperAdmin()
-            ? $request->validated('company_id')
-            : $user->company_id;
-
-        $this->userService->updateUser($user, $request->validated(), $targetCompanyId);
-
-        return redirect()->route('users.index')->with('success', 'Data user berhasil diperbarui.');
     }
 
     public function destroy(User $user): RedirectResponse
     {
-        $currentUser = auth()->user();
+        try {
+            $currentUser = auth()->user();
 
-        if ($user->id === $currentUser->id) {
-            return back()->with('error', 'Anda tidak dapat menghapus akun Anda sendiri.');
+            if ($user->id === $currentUser->id) {
+                return back()->with('error', 'Anda tidak dapat menghapus akun Anda sendiri.');
+            }
+
+            if (! $currentUser->isSuperAdmin() && $user->company_id !== $currentUser->company_id) {
+                abort(403, 'Anda tidak memiliki akses untuk menghapus user ini.');
+            }
+
+            $user->delete();
+
+            return redirect()->route('users.index')->with('success', 'User berhasil dihapus.');
+        } catch (\Throwable $th) {
+            Log::error('Gagal menghapus pengguna: ' . $th->getMessage());
+            return back()
+                ->with('error', 'Terjadi kesalahan sistem. Gagal menghapus pengguna.')
+                ->withInput();
         }
-
-        if (! $currentUser->isSuperAdmin() && $user->company_id !== $currentUser->company_id) {
-            abort(403, 'Anda tidak memiliki akses untuk menghapus user ini.');
-        }
-
-        $user->delete();
-
-        return redirect()->route('users.index')->with('success', 'User berhasil dihapus.');
     }
 }

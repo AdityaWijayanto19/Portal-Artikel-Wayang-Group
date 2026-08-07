@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Requests;
+namespace App\Http\Requests\Category;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Str;
@@ -46,8 +46,25 @@ class StoreCategoryRequest extends FormRequest
                 'nullable',
                 'string',
                 'max:255',
-                Rule::unique('categories', 'slug')->where(fn ($query) => $query->where('company_id', $companyId)),
+                Rule::unique('categories', 'slug')->where(fn($query) => $query->where('company_id', $companyId)),
             ],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'company_id.required' => 'Perusahaan wajib dipilih.',
+            'company_id.exists' => 'Perusahaan yang dipilih tidak valid.',
+            'company_id.integer' => 'Perusahaan yang dipilih tidak valid.',
+
+            'name.required' => 'Nama kategori wajib diisi.',
+            'name.string' => 'Nama kategori harus berupa teks.',
+            'name.max' => 'Nama kategori maksimal 255 karakter.',
+
+            'slug.string' => 'Slug harus berupa teks.',
+            'slug.max' => 'Slug maksimal 255 karakter.',
+            'slug.unique' => 'Slug kategori sudah digunakan pada perusahaan ini.',
         ];
     }
 }

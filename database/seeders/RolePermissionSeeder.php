@@ -23,6 +23,6 @@ class RolePermissionSeeder extends Seeder
         // 3. Attach Permissions ke Roles
         $superAdmin->givePermissionTo([$viewDashboard, $manageArticles, $publishArticles]);
         $admin->givePermissionTo([$viewDashboard, $manageArticles]);
-        $author->givePermissionTo([$viewDashboard]);
+        $author->givePermissionTo([$viewDashboard, $manageArticles]);
     }
 }

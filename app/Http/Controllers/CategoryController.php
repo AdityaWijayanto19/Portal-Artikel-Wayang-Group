@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\StoreCategoryRequest;
+use App\Http\Requests\Category\StoreCategoryRequest;
+use App\Http\Requests\Category\UpdateCategoryRequest;
 use App\Models\Category;
 use App\Models\Company;
 use App\Services\CategoryService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 
 class CategoryController extends Controller
@@ -48,9 +50,17 @@ class CategoryController extends Controller
 
     public function store(StoreCategoryRequest $request): RedirectResponse
     {
-        $this->categoryService->create($request->validated());
-
-        return redirect()->route('categories.index')->with('success', 'Kategori berhasil ditambahkan.');
+        try {
+            $this->categoryService->create($request->validated());
+            return redirect()
+                ->route('categories.index')
+                ->with('success', 'Kategori berhasil ditambahkan.');
+        } catch (\Throwable $th) {
+            Log::error('Gagal menambahkan kategori: ' . $th->getMessage());
+            return back()
+                ->with('error', 'Terjadi kesalahan sistem. Gagal menambahkan kategori.')
+                ->withInput();
+        }
     }
 
     public function edit(Category $category): View
@@ -60,17 +70,32 @@ class CategoryController extends Controller
         return view('categories.edit', compact('category', 'companies'));
     }
 
-    public function update(StoreCategoryRequest $request, Category $category): RedirectResponse
+    public function update(UpdateCategoryRequest $request, Category $category): RedirectResponse
     {
-        $this->categoryService->update($category, $request->validated());
-
-        return redirect()->route('categories.index')->with('success', 'Kategori berhasil diperbarui.');
+        try {
+            $this->categoryService->update($category, $request->validated());
+            return redirect()
+                ->route('categories.index')
+                ->with('success', 'Kategori berhasil diperbarui.');
+        } catch (\Throwable $th) {
+            Log::error('Gagal memperbarui kategori: ' . $th->getMessage());
+            return back()
+                ->with('error', 'Terjadi kesalahan sistem. Gagal memperbarui kategori.')
+                ->withInput();
+        }
     }
 
     public function destroy(Category $category): RedirectResponse
     {
-        $this->categoryService->delete($category);
+        try {
+            $this->categoryService->delete($category);
 
-        return redirect()->route('categories.index')->with('success', 'Kategori berhasil dihapus.');
+            return redirect()->route('categories.index')->with('success', 'Kategori berhasil dihapus.');
+        } catch (\Throwable $th) {
+            Log::error('Gagal menghapus kategori: ' . $th->getMessage());
+            return back()
+                ->with('error', 'Terjadi kesalahan sistem. Gagal menghapus kategori.')
+                ->withInput();
+        }
     }
 }

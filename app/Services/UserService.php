@@ -30,9 +30,9 @@ class UserService
         });
     }
 
-    public function updateUser(User $user, array $data, ?int $targetCompanyId = null): User
+    public function updateUser(User $user, array $data, ?int $targetCompanyId = null, ?string $role = null): User
     {
-        return DB::transaction(function () use ($user, $data, $targetCompanyId) {
+        return DB::transaction(function () use ($user, $data, $targetCompanyId, $role) {
             $updateData = [
                 'name' => $data['name'],
                 'username' => strtolower(trim($data['username'])),
@@ -43,7 +43,11 @@ class UserService
                 $updateData['password'] = Hash::make($data['password']);
             }
 
-            if ($targetCompanyId) {
+            // Super Admin = holding "Wayang Group" (bukan tenant) → tanpa company & pivot.
+            if ($role === 'super_admin') {
+                $updateData['company_id'] = null;
+                $user->companies()->sync([]);
+            } elseif ($targetCompanyId) {
                 $updateData['company_id'] = $targetCompanyId;
                 $user->companies()->sync([$targetCompanyId]);
             }
@@ -51,8 +55,8 @@ class UserService
             $user->update($updateData);
 
             // Sync Role
-            if (isset($data['role'])) {
-                $user->syncRoles([$data['role']]);
+            if ($role) {
+                $user->syncRoles([$role]);
             }
 
             return $user;

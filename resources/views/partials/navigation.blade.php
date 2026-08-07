@@ -37,7 +37,7 @@
 
                     <x-select name="company_id" label="Perusahaan Aktif" theme="dark"
                         :value="session('active_company_id', 'all')" :options="$tenantOptions"
-                        :searchable="true" placeholder="Pilih perusahaan..." />
+                        :searchable="true" placeholder="Pilih perusahaan..." :showError="false"/>
                 </form>
             </div>
         @endhasrole
@@ -68,7 +68,6 @@
             @endhasrole
 
             <!-- SEO Article Editor -->
-            @can('manage articles')
                 <a href="{{ Route::has('articles.index') ? route('articles.index') : 'javascript:void(0)' }}"
                     class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition {{ request()->routeIs('articles.*') ? 'bg-[#C59B27] text-black font-bold shadow-sm' : 'text-[#FDFBF7]/70 hover:bg-[#2A2A2A] hover:text-white' }}">
                     <svg class="w-4 h-4 opacity-80 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -77,7 +76,6 @@
                     </svg>
                     <span>Manajemen Artikel</span>
                 </a>
-            @endcan
 
             @hasrole('super_admin|admin')
                 <a href="{{ Route::has('users.index') ? route('users.index') : 'javascript:void(0)' }}"

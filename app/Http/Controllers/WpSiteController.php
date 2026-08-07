@@ -2,20 +2,20 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\StoreWpSiteRequest;
+use App\Http\Requests\WpSite\StoreWpSiteRequest;
+use App\Http\Requests\WpSite\UpdateWpSiteRequest;
 use App\Models\Category;
 use App\Models\Company;
 use App\Models\WPSite;
 use App\Services\WpSiteService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 
 class WpSiteController extends Controller
 {
-    public function __construct(private readonly WpSiteService $wpSiteService)
-    {
-    }
+    public function __construct(private readonly WpSiteService $wpSiteService) {}
 
     public function index(Request $request): View
     {
@@ -46,9 +46,15 @@ class WpSiteController extends Controller
 
     public function store(StoreWpSiteRequest $request): RedirectResponse
     {
-        $this->wpSiteService->create($request->validated());
-
-        return redirect()->route('wp-sites.index')->with('success', 'WP Site berhasil ditambahkan.');
+        try {
+            $this->wpSiteService->create($request->validated());
+            return redirect()->route('wp-sites.index')->with('success', 'WP Site berhasil ditambahkan.');
+        } catch (\Throwable $th) {
+            Log::error('Gagal menambahkan WP Site: ' . $th->getMessage());
+            return back()
+                ->with('error', 'Terjadi kesalahan sistem. Gagal menambahkan WP Site.')
+                ->withInput();
+        }
     }
 
     public function edit(WPSite $wpSite): View
@@ -63,18 +69,32 @@ class WpSiteController extends Controller
         return view('wp-sites.edit', compact('wpSite', 'companies', 'categories', 'allCategories', 'selectedCompanyId'));
     }
 
-    public function update(StoreWpSiteRequest $request, WPSite $wpSite): RedirectResponse
+    public function update(UpdateWpSiteRequest $request, WPSite $wpSite): RedirectResponse
     {
-        $this->wpSiteService->update($wpSite, $request->validated());
+        try {
+            $this->wpSiteService->update($wpSite, $request->validated());
+            return redirect()->route('wp-sites.index')->with('success', 'WP Site berhasil diperbarui.');
 
-        return redirect()->route('wp-sites.index')->with('success', 'WP Site berhasil diperbarui.');
+        } catch (\Throwable $th) {
+            Log::error('Gagal memperbarui Wp Site: ' . $th->getMessage());
+            return back()
+                ->with('error', 'Terjadi kesalahan sistem. Gagal memperbarui Wp Site.')
+                ->withInput();
+        }
     }
 
     public function destroy(WPSite $wpSite): RedirectResponse
     {
-        $this->wpSiteService->delete($wpSite);
+        try {
+            $this->wpSiteService->delete($wpSite);
+            return redirect()->route('wp-sites.index')->with('success', 'WP Site berhasil dihapus.');
 
-        return redirect()->route('wp-sites.index')->with('success', 'WP Site berhasil dihapus.');
+        } catch (\Throwable $th) {
+            Log::error('Gagal menghapus Wp Site: ' . $th->getMessage());
+            return back()
+                ->with('error', 'Terjadi kesalahan sistem. Gagal menghapus Wp Site.')
+                ->withInput();
+        }
     }
 
     protected function resolveCategoriesForCurrentUser(?int $companyId = null): \Illuminate\Support\Collection

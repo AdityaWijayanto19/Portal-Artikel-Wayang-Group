@@ -8,6 +8,7 @@ use App\Models\Company;
 use App\Services\ImageService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
@@ -49,25 +50,29 @@ class CompanyController extends Controller
      */
     public function store(StoreCompanyRequest $request): RedirectResponse
     {
-        $validated = $request->validated();
+        try {
+            $validated = $request->validated();
 
-        // Generasi Slug jika tidak diisi manual
-        $validated['slug'] = $validated['slug'] ? Str::slug($validated['slug']) : Str::slug($validated['name']);
-        $validated['is_active'] = $request->has('is_active');
+            $validated['slug'] = $validated['slug'] ? Str::slug($validated['slug']) : Str::slug($validated['name']);
+            $validated['is_active'] = $request->has('is_active');
 
-        // Handle Upload Logo Perusahaan via ImageService
-        if ($request->hasFile('logo')) {
-            // Hasilnya akan tersimpan di: uploads/companies/UUID.webp
-            $validated['logo_path'] = $this->imageService->processUpload(
-                $request->file('logo'),
-                'companies'
-            );
+            if ($request->hasFile('logo')) {
+                $validated['logo_path'] = $this->imageService->processUpload(
+                    $request->file('logo'),
+                    'companies'
+                );
+            }
+
+            Company::create($validated);
+
+            return redirect()->route('companies.index')
+                ->with('success', 'Perusahaan baru berhasil ditambahkan.');
+        } catch (\Throwable $th) {
+            Log::error('Gagal menambahkan perusahaan: ' . $th->getMessage());
+            return back()
+                ->with('error', 'Terjadi kesalahan sistem. Gagal menambahkan perusahaan.')
+                ->withInput();
         }
-
-        Company::create($validated);
-
-        return redirect()->route('companies.index')
-            ->with('success', 'Perusahaan baru berhasil ditambahkan.');
     }
 
     /**
@@ -94,29 +99,33 @@ class CompanyController extends Controller
      */
     public function update(UpdateCompanyRequest $request, Company $company): RedirectResponse
     {
-        $validated = $request->validated();
+        try {
+            $validated = $request->validated();
 
-        $validated['slug'] = $validated['slug'] ? Str::slug($validated['slug']) : Str::slug($validated['name']);
-        $validated['is_active'] = $request->has('is_active');
+            $validated['slug'] = $validated['slug'] ? Str::slug($validated['slug']) : Str::slug($validated['name']);
+            $validated['is_active'] = $request->has('is_active');
 
-        // Handle Update Logo
-        if ($request->hasFile('logo')) {
-            // 1. Hapus logo lama jika ada lewat ImageService
-            if ($company->logo_path) {
-                $this->imageService->deleteFile($company->logo_path);
+            if ($request->hasFile('logo')) {
+                if ($company->logo_path) {
+                    $this->imageService->deleteFile($company->logo_path);
+                }
+
+                $validated['logo_path'] = $this->imageService->processUpload(
+                    $request->file('logo'),
+                    'companies'
+                );
             }
 
-            // 2. Upload logo baru & konversi ke webp
-            $validated['logo_path'] = $this->imageService->processUpload(
-                $request->file('logo'),
-                'companies'
-            );
+            $company->update($validated);
+
+            return redirect()->route('companies.index')
+                ->with('success', "Data perusahaan {$company->name} berhasil diperbarui.");
+        } catch (\Throwable $th) {
+            Log::error('Gagal memperbarui perusahaan: ' . $th->getMessage());
+            return back()
+                ->with('error', 'Terjadi kesalahan sistem. Gagal memperbarui perusahaan.')
+                ->withInput();
         }
-
-        $company->update($validated);
-
-        return redirect()->route('companies.index')
-            ->with('success', "Data perusahaan {$company->name} berhasil diperbarui.");
     }
 
     /**
@@ -124,15 +133,21 @@ class CompanyController extends Controller
      */
     public function destroy(Company $company): RedirectResponse
     {
-        // Hapus logo dari storage jika ada
-        if ($company->logo_path) {
-            $this->imageService->deleteFile($company->logo_path);
+        try {
+            if ($company->logo_path) {
+                $this->imageService->deleteFile($company->logo_path);
+            }
+
+            $companyName = $company->name;
+            $company->delete();
+
+            return redirect()->route('companies.index')
+                ->with('success', "Perusahaan {$companyName} berhasil dihapus.");
+        } catch (\Throwable $th) {
+            Log::error('Gagal menghapus perusahaan: ' . $th->getMessage());
+            return back()
+                ->with('error', 'Terjadi kesalahan sistem. Gagal menghapus perusahaan.')
+                ->withInput();
         }
-
-        $companyName = $company->name;
-        $company->delete();
-
-        return redirect()->route('companies.index')
-            ->with('success', "Perusahaan {$companyName} berhasil dihapus.");
     }
 }

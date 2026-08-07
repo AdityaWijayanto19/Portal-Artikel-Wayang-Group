@@ -33,18 +33,85 @@
         processFile(file) {
             this.fileName = file.name;
             this.fileSize = (file.size / 1024).toFixed(1) + ' KB';
-            
+
             if (file.type.startsWith('image/')) {
-                let reader = new FileReader();
-                reader.onload = (e) => { this.preview = e.target.result; };
-                reader.readAsDataURL(file);
+                this.processImage(file);
             } else {
                 // Jika file non-gambar (PDF/CSV)
                 this.preview = 'document';
+                this.replaceInputFile(file);
+            }
+        },
+        async processImage(file) {
+            this.origSize = (file.size / 1024).toFixed(1) + ' KB';
+
+            try {
+                const compressed = await this.compressImage(file, 1600, 0.82);
+                this.fileName = compressed.name;
+                this.fileSize = (compressed.size / 1024).toFixed(1) + ' KB';
+                this.showPreview(URL.createObjectURL(compressed));
+                this.replaceInputFile(compressed);
+            } catch (e) {
+                console.warn('Kompresi gambar gagal, gunakan file asli:', e);
+                let reader = new FileReader();
+                reader.onload = (ev) => { this.showPreview(ev.target.result); };
+                reader.readAsDataURL(file);
+                this.replaceInputFile(file);
+            }
+        },
+        showPreview(url) {
+            if (this.preview && this.preview.startsWith('blob:')) URL.revokeObjectURL(this.preview);
+            this.preview = url;
+        },
+        // Kompres/resize gambar di browser (canvas) → server hanya menerima gambar kecil.
+        compressImage(file, maxWidth, quality) {
+            return new Promise((resolve, reject) => {
+                const url = URL.createObjectURL(file);
+                const img = new Image();
+                img.onload = () => {
+                    URL.revokeObjectURL(url);
+                    const { naturalWidth, naturalHeight } = img;
+
+                    // Kirim asli bila gambar sudah kecil & ringan — hindari kehilangan kualitas.
+                    if (naturalWidth <= maxWidth && file.size <= 400 * 1024) {
+                        resolve(file);
+                        return;
+                    }
+
+                    let width = naturalWidth;
+                    let height = naturalHeight;
+                    if (width > maxWidth) {
+                        height = Math.round(height * maxWidth / width);
+                        width = maxWidth;
+                    }
+
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+                    canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+
+                    canvas.toBlob((blob) => {
+                        if (!blob) { reject(new Error('Canvas toBlob gagal')); return; }
+                        const ext = blob.type === 'image/webp' ? 'webp' : (blob.type === 'image/png' ? 'png' : 'jpg');
+                        const base = (file.name || 'image').replace(/\.[^.]+$/, '');
+                        resolve(new File([blob], `${base}.${ext}`, { type: blob.type }));
+                    }, 'image/webp', quality);
+                };
+                img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Gagal memuat gambar')); };
+                img.src = url;
+            });
+        },
+        replaceInputFile(file) {
+            try {
+                const dt = new DataTransfer();
+                dt.items.add(file);
+                this.$refs.fileInput.files = dt.files;
+            } catch (e) {
+                console.warn('DataTransfer tidak didukung, file asli tetap dipakai:', e);
             }
         },
         clearFile() {
-            this.preview = null;
+            this.showPreview(null);
             this.fileName = '';
             this.fileSize = '';
             this.$refs.fileInput.value = '';

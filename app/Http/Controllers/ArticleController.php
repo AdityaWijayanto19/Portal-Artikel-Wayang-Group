@@ -16,29 +16,22 @@ use App\Support\ArticleContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 
 class ArticleController extends Controller
 {
     public function __construct(private readonly ArticleService $articleService) {}
 
-    /**
-     * Halaman utama artikel.
-     * - Super admin tanpa perusahaan aktif → tampilkan kartu pemilihan perusahaan.
-     * - Selain itu → daftar artikel yang terisolasi pada perusahaan aktif.
-     */
     public function index(Request $request): View
     {
         $user = $request->user();
 
-        // Super admin harus memilih perusahaan dulu (fokus modul artikel belum diset).
         if ($user->isSuperAdmin() && ! ArticleContext::hasCompany()) {
             $companies = Company::query()
                 ->withCount([
-                    // withoutGlobalScope agar hitungan tidak ikut terfilter scope global
-                    // (active_company_id) yang kini INDEPENDEN dari konteks artikel.
-                    'articles' => fn ($q) => $q->withoutGlobalScope(TenantScope::class),
-                    'wpSites' => fn ($q) => $q->withoutGlobalScope(TenantScope::class),
+                    'articles' => fn($q) => $q->withoutGlobalScope(TenantScope::class),
+                    'wpSites' => fn($q) => $q->withoutGlobalScope(TenantScope::class),
                     'users',
                 ])
                 ->orderBy('name')
@@ -56,13 +49,8 @@ class ArticleController extends Controller
         return view('articles.index', compact('company', 'articles'));
     }
 
-    /**
-     * Super admin memilih perusahaan dari kartu → set FOKUS modul artikel di sesi
-     * (bukan scope global), lalu diarahkan ke halaman index perusahaan tersebut.
-     */
     public function chooseCompany(Request $request, Company $company): RedirectResponse
     {
-        // Hanya super admin yang boleh berpindah fokus artikel. Admin/Author terkunci di company sendiri.
         abort_unless($request->user()->isSuperAdmin(), 403);
 
         ArticleContext::setCompany($company->id);
@@ -70,10 +58,6 @@ class ArticleController extends Controller
         return redirect()->route('articles.index');
     }
 
-    /**
-     * Tombol "Ganti Perusahaan" → lupakan fokus artikel saat ini sehingga super admin
-     * kembali ke halaman pemilihan perusahaan. Scope global tidak tersentuh.
-     */
     public function selectCompany(Request $request): RedirectResponse
     {
         abort_unless($request->user()->isSuperAdmin(), 403);
@@ -87,7 +71,6 @@ class ArticleController extends Controller
     {
         $company = ArticleContext::companyId() ? Company::find(ArticleContext::companyId()) : null;
 
-        // Super admin belum memilih perusahaan konkret → kembalikan ke pemilihan.
         if ($company === null) {
             return redirect()->route('articles.index');
         }
@@ -100,8 +83,6 @@ class ArticleController extends Controller
 
     public function edit(Article $article): View
     {
-        // Article::resolveRouteBinding mengunci artikel pada perusahaan konteks artikel
-        // (ArticleContext); artikel lintas-perusahaan tidak akan pernah ter-resolve di sini.
         $article->load(['seoMeta', 'categories', 'tags', 'sitePublications']);
         $company = Company::findOrFail($article->company_id);
 
@@ -113,28 +94,76 @@ class ArticleController extends Controller
 
     public function store(StoreArticleRequest $request): RedirectResponse
     {
-        $article = $this->articleService->store($request->validated(), $request->file('featured_image'));
+        try {
+            $start = microtime(true);
+            $article = $this->articleService->store($request->validated(), $request->file('featured_image'));
+            $storeElapsed = round((microtime(true) - $start) * 1000, 2);
 
-        if ($request->string('action')->toString() === 'publish') {
-            $this->articleService->publish($article);
+            if ($request->string('action')->toString() === 'publish') {
+                $this->articleService->publish($article);
 
-            return redirect()->route('articles.index')->with('success', 'Artikel masuk antrean publish.');
+                Log::info('[Article] store+publish selesai', [
+                    'article_id' => $article->id,
+                    'has_image' => $request->hasFile('featured_image'),
+                    'content_length' => strlen((string) $request->input('content')),
+                    'store_ms' => $storeElapsed,
+                    'total_ms' => round((microtime(true) - $start) * 1000, 2),
+                ]);
+
+                return redirect()->route('articles.index')->with('success', 'Artikel masuk antrean publish.');
+            }
+
+            Log::info('[Article] store draft selesai', [
+                'article_id' => $article->id,
+                'has_image' => $request->hasFile('featured_image'),
+                'content_length' => strlen((string) $request->input('content')),
+                'store_ms' => $storeElapsed,
+                'total_ms' => round((microtime(true) - $start) * 1000, 2),
+            ]);
+
+            return redirect()->route('articles.index')->with('success', 'Draft berhasil disimpan.');
+        } catch (\Throwable $th) {
+            Log::error('Gagal menambahkan artikel: ' . $th->getMessage());
+            return back()
+                ->with('error', 'Terjadi kesalahan sistem. Gagal menambahkan artikel.')
+                ->withInput();
         }
-
-        return redirect()->route('articles.index')->with('success', 'Draft berhasil disimpan.');
     }
 
     public function update(UpdateArticleRequest $request, Article $article): RedirectResponse
     {
-        $article = $this->articleService->update($article, $request->validated(), $request->file('featured_image'));
+        try {
+            $start = microtime(true);
+            $article = $this->articleService->update($article, $request->validated(), $request->file('featured_image'));
+            $storeElapsed = round((microtime(true) - $start) * 1000, 2);
 
-        if ($request->string('action')->toString() === 'publish') {
-            $this->articleService->publish($article);
+            if ($request->string('action')->toString() === 'publish') {
+                $this->articleService->publish($article);
 
-            return redirect()->route('articles.index')->with('success', 'Artikel diperbarui & masuk antrean publish.');
+                Log::info('[Article] update+publish selesai', [
+                    'article_id' => $article->id,
+                    'has_image' => $request->hasFile('featured_image'),
+                    'update_ms' => $storeElapsed,
+                    'total_ms' => round((microtime(true) - $start) * 1000, 2),
+                ]);
+
+                return redirect()->route('articles.index')->with('success', 'Artikel diperbarui & masuk antrean publish.');
+            }
+
+            Log::info('[Article] update draft selesai', [
+                'article_id' => $article->id,
+                'has_image' => $request->hasFile('featured_image'),
+                'update_ms' => $storeElapsed,
+                'total_ms' => round((microtime(true) - $start) * 1000, 2),
+            ]);
+
+            return redirect()->route('articles.index')->with('success', 'Artikel berhasil diperbarui.');
+        } catch (\Throwable $th) {
+            Log::error('Gagal memperbarui artikel: ' . $th->getMessage());
+            return back()
+                ->with('error', 'Terjadi kesalahan sistem. Gagal memperbarui artikel.')
+                ->withInput();
         }
-
-        return redirect()->route('articles.index')->with('success', 'Artikel berhasil diperbarui.');
     }
 
     public function publish(Article $article): RedirectResponse
@@ -144,11 +173,24 @@ class ArticleController extends Controller
         return back()->with('success', 'Artikel berhasil masuk antrean publish.');
     }
 
-    public function retry(Article $article): RedirectResponse
+    /**
+     * Retry publish. Tanpa $wpSite → hanya situs berstatus failed yang di-retry.
+     * Dengan $wpSite → retry satu situs tertentu (untuk tombol per-situs).
+     */
+    public function retry(Article $article, ?int $wpSite = null): RedirectResponse
     {
-        $this->articleService->retry($article);
+        $siteName = $wpSite !== null
+            ? optional(WPSite::query()->withoutGlobalScope(TenantScope::class)->find($wpSite))->site_name
+            : null;
 
-        return back()->with('success', 'Retry publish telah dijalankan.');
+        $this->articleService->retry($article, $wpSite);
+
+        return back()->with(
+            'success',
+            $siteName
+                ? "Retry publish situs \"{$siteName}\" telah dijalankan."
+                : 'Retry publish untuk situs-situs yang gagal telah dijalankan.',
+        );
     }
 
     /**
@@ -156,10 +198,17 @@ class ArticleController extends Controller
      */
     public function destroy(Article $article): RedirectResponse
     {
-        $this->articleService->delete($article);
+        try {
+            $this->articleService->delete($article);
 
-        return redirect()->route('articles.index')
-            ->with('success', 'Artikel berhasil dihapus beserta post-nya dari situs WordPress target.');
+            return redirect()->route('articles.index')
+                ->with('success', 'Artikel berhasil dihapus beserta post-nya dari situs WordPress target.');
+        } catch (\Throwable $th) {
+            Log::error('Gagal menghapus artikel: ' . $th->getMessage());
+            return back()
+                ->with('error', 'Terjadi kesalahan sistem. Gagal menghapus artikel.')
+                ->withInput();
+        }
     }
 
     /**
@@ -167,14 +216,21 @@ class ArticleController extends Controller
      */
     public function destroySite(Article $article, int $wpSite): RedirectResponse
     {
-        $publication = $article->sitePublications()
-            ->where('wp_site_id', $wpSite)
-            ->with('wpSite')
-            ->firstOrFail();
+        try {
+            $publication = $article->sitePublications()
+                ->where('wp_site_id', $wpSite)
+                ->with('wpSite')
+                ->firstOrFail();
 
-        $this->articleService->deleteSitePublication($article, $publication);
+            $this->articleService->deleteSitePublication($article, $publication);
 
-        return back()->with('success', 'Publikasi dihapus dari situs "'.($publication->wpSite->site_name ?? '#'.$wpSite).'".');
+            return back()->with('success', 'Publikasi dihapus dari situs "' . ($publication->wpSite->site_name ?? '#' . $wpSite) . '".');
+        } catch (\Throwable $th) {
+            Log::error('Gagal hapus publikasi situs: ' . $th->getMessage());
+            return back()
+                ->with('error', 'Terjadi kesalahan sistem. Gagal hapus publikasi situs.')
+                ->withInput();
+        }
     }
 
     /**
@@ -186,13 +242,9 @@ class ArticleController extends Controller
     private function companyFormData(int $companyId): array
     {
         return [
-            // withoutGlobalScope: konteks artikel kini independen dari active_company_id,
-            // jadi isolasi ditegakkan lewat filter eksplisit where('company_id', ...) di sini.
             'categories' => Category::query()->withoutGlobalScope(TenantScope::class)->where('company_id', $companyId)->orderBy('name')->get(),
             'tags' => Tag::query()->withoutGlobalScope(TenantScope::class)->where('company_id', $companyId)->orderBy('name')->get(),
             'wpSites' => WPSite::query()->withoutGlobalScope(TenantScope::class)->where('company_id', $companyId)->with('categories')->orderBy('site_name')->get(),
-            // Author = user pada company aktif. Dipakai untuk sinkronisasi author WordPress
-            // (WpAuthorResolverService memetakan `username` user ini ke WP user saat publish).
             'authors' => User::query()->where('company_id', $companyId)->orderBy('name')->get(),
         ];
     }

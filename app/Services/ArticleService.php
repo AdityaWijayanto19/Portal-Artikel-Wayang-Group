@@ -36,7 +36,15 @@ class ArticleService
     public function store(array $data, ?UploadedFile $image = null): Article
     {
         return DB::transaction(function () use ($data, $image): Article {
+            $start = microtime(true);
+
+            $seoStart = microtime(true);
             $analysis = $this->seoAnalyzer->analyze($data);
+            $seoElapsed = round((microtime(true) - $seoStart) * 1000, 2);
+
+            $imageStart = microtime(true);
+            $featuredPath = $image ? $this->storeFeaturedImage($image) : null;
+            $imageElapsed = round((microtime(true) - $imageStart) * 1000, 2);
 
             $article = Article::create([
                 'company_id' => $data['company_id'],
@@ -47,7 +55,7 @@ class ArticleService
                 'title' => $data['title'],
                 'slug' => $data['slug'],
                 'content' => $data['content'],
-                'featured_image_path' => $image ? $this->storeFeaturedImage($image) : null,
+                'featured_image_path' => $featuredPath,
                 'image_alt_text' => $data['image_alt_text'] ?? null,
                 'seo_score' => $analysis['score'],
                 'yoast_title' => $data['yoast_title'] ?? $data['title'],
@@ -58,6 +66,13 @@ class ArticleService
 
             $this->syncRelations($article, $data);
             $this->upsertSeoMeta($article, $data, $analysis);
+
+            Log::info('[ArticleService] store rincian', [
+                'has_image' => $image !== null,
+                'seo_ms' => $seoElapsed,
+                'image_ms' => $imageElapsed,
+                'total_ms' => round((microtime(true) - $start) * 1000, 2),
+            ]);
 
             return $article;
         });
@@ -105,6 +120,7 @@ class ArticleService
      */
     public function publish(Article $article): Article
     {
+        $start = microtime(true);
         $analysis = $this->seoAnalyzer->analyze($this->seoInput($article));
 
         if ($analysis['score'] < self::MIN_PUBLISH_SCORE) {
@@ -136,6 +152,12 @@ class ArticleService
         foreach ($siteIds as $siteId) {
             PublishArticleToWordPressJob::dispatch($article->id, (int) $siteId);
         }
+
+        Log::info('[ArticleService] publish selesai', [
+            'article_id' => $article->id,
+            'site_count' => $siteIds->count(),
+            'total_ms' => round((microtime(true) - $start) * 1000, 2),
+        ]);
 
         return $article->refresh();
     }

@@ -62,13 +62,10 @@
 
                 @yield('content')
             </main>
-
         </div>
-
     </div>
-
     @stack('scripts')
-
+    <x-toast />
 </body>
 
 </html>
