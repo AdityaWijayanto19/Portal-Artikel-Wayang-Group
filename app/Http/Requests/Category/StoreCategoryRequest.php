@@ -57,11 +57,9 @@ class StoreCategoryRequest extends FormRequest
             'company_id.required' => 'Perusahaan wajib dipilih.',
             'company_id.exists' => 'Perusahaan yang dipilih tidak valid.',
             'company_id.integer' => 'Perusahaan yang dipilih tidak valid.',
-
             'name.required' => 'Nama kategori wajib diisi.',
             'name.string' => 'Nama kategori harus berupa teks.',
             'name.max' => 'Nama kategori maksimal 255 karakter.',
-
             'slug.string' => 'Slug harus berupa teks.',
             'slug.max' => 'Slug maksimal 255 karakter.',
             'slug.unique' => 'Slug kategori sudah digunakan pada perusahaan ini.',

@@ -3,10 +3,10 @@
         show: true,
         init() {
             // Otomatis hilang dalam 4 detik
-            setTimeout(() => { this.show = false }, 4000);
+            setTimeout(() => { this.show = false }, 5000);
         }
      }"
-     class="fixed top-5 right-5 z-50 flex flex-col gap-3 max-w-sm w-full pointer-events-none">
+     class="fixed top-[12%] right-5 z-50 flex flex-col gap-3 max-w-sm w-full pointer-events-none">
 
     {{-- ALERT SUCCESS --}}
     @if (session('success'))

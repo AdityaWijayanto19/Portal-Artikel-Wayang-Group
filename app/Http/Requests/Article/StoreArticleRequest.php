@@ -25,9 +25,9 @@ class StoreArticleRequest extends FormRequest
 
         // Tenant guard: hanya izinkan relasi milik company yang sama agar tidak bocor antar holding.
         $categoryExists = Rule::exists('categories', 'id')
-            ->where(fn ($q) => $q->where('company_id', $companyId));
+            ->where(fn($q) => $q->where('company_id', $companyId));
         $wpSiteExists = Rule::exists('wp_sites', 'id')
-            ->where(fn ($q) => $q->where('company_id', $companyId));
+            ->where(fn($q) => $q->where('company_id', $companyId));
 
         return [
             'company_id' => ['required', 'integer', Rule::in($this->allowedCompanyIds())],
@@ -116,8 +116,8 @@ class StoreArticleRequest extends FormRequest
         }
 
         return collect($tags)
-            ->map(fn ($tag) => trim((string) $tag))
-            ->filter(fn (string $tag) => $tag !== '')
+            ->map(fn($tag) => trim((string) $tag))
+            ->filter(fn(string $tag) => $tag !== '')
             ->unique()
             ->values()
             ->all();
@@ -174,5 +174,124 @@ class StoreArticleRequest extends FormRequest
         return $user?->isSuperAdmin()
             ? Company::query()->pluck('id')->all()
             : ($user?->companyIds() ?? []);
+    }
+
+    public function messages(): array
+    {
+        return [
+            // ==================================================
+            // COMPANY
+            // ==================================================
+
+            'company_id.required' => 'Perusahaan wajib dipilih.',
+            'company_id.integer' => 'Perusahaan yang dipilih tidak valid.',
+            'company_id.in' => 'Anda tidak memiliki akses ke perusahaan yang dipilih.',
+
+            // ==================================================
+            // AUTHOR
+            // ==================================================
+
+            'user_id.required' => 'Penulis artikel wajib dipilih.',
+            'user_id.integer' => 'Penulis artikel tidak valid.',
+            'user_id.in' => 'Penulis yang dipilih tidak memiliki akses ke perusahaan tersebut.',
+
+            // ==================================================
+            // TITLE
+            // ==================================================
+
+            'title.required' => 'Judul artikel wajib diisi.',
+            'title.string' => 'Judul artikel harus berupa teks.',
+            'title.min' => 'Judul artikel minimal 10 karakter.',
+            'title.max' => 'Judul artikel maksimal 255 karakter.',
+
+            // ==================================================
+            // SLUG
+            // ==================================================
+
+            'slug.required' => 'Slug artikel wajib diisi.',
+            'slug.string' => 'Slug artikel harus berupa teks.',
+            'slug.max' => 'Slug artikel maksimal 255 karakter.',
+            'slug.regex' => 'Slug hanya boleh berisi huruf kecil, angka, dan tanda strip (-).',
+
+            // ==================================================
+            // CONTENT
+            // ==================================================
+
+            'content.required' => 'Konten artikel wajib diisi.',
+            'content.string' => 'Konten artikel harus berupa teks.',
+            'content.min' => 'Konten artikel minimal 200 karakter.',
+
+            // ==================================================
+            // FEATURED IMAGE
+            // ==================================================
+
+            'featured_image.image' => 'Featured image harus berupa file gambar.',
+            'featured_image.mimes' => 'Format featured image harus JPG, JPEG, PNG, atau WEBP.',
+            'featured_image.max' => 'Ukuran featured image maksimal 2 MB.',
+
+            // ==================================================
+            // IMAGE ALT TEXT
+            // ==================================================
+
+            'image_alt_text.string' => 'Alt text gambar harus berupa teks.',
+            'image_alt_text.max' => 'Alt text gambar maksimal 255 karakter.',
+
+            // ==================================================
+            // CATEGORIES
+            // ==================================================
+
+            'categories.required' => 'Minimal satu kategori wajib dipilih.',
+            'categories.array' => 'Format kategori tidak valid.',
+            'categories.min' => 'Minimal satu kategori wajib dipilih.',
+
+            'categories.*.integer' => 'Kategori yang dipilih tidak valid.',
+            'categories.*.exists' => 'Salah satu kategori yang dipilih tidak tersedia atau bukan milik perusahaan tersebut.',
+
+            // ==================================================
+            // TAGS
+            // ==================================================
+
+            'tags.array' => 'Format tag tidak valid.',
+            'tags.*.string' => 'Nama tag harus berupa teks.',
+            'tags.*.max' => 'Nama tag maksimal 50 karakter.',
+
+            // ==================================================
+            // WORDPRESS SITES
+            // ==================================================
+
+            'wp_site_ids.required' => 'Minimal satu WP Site wajib dipilih.',
+            'wp_site_ids.array' => 'Format WP Site tidak valid.',
+            'wp_site_ids.min' => 'Minimal satu WP Site wajib dipilih.',
+
+            'wp_site_ids.*.integer' => 'WP Site yang dipilih tidak valid.',
+            'wp_site_ids.*.exists' => 'Salah satu WP Site yang dipilih tidak tersedia atau bukan milik perusahaan tersebut.',
+
+            // ==================================================
+            // STATUS
+            // ==================================================
+
+            'status.required' => 'Status artikel wajib dipilih.',
+            'status.in' => 'Status artikel tidak valid.',
+
+            // ==================================================
+            // YOAST SEO
+            // ==================================================
+
+            'yoast_title.string' => 'Judul SEO harus berupa teks.',
+            'yoast_title.max' => 'Judul SEO maksimal 255 karakter.',
+
+            'yoast_metadesc.string' => 'Meta description harus berupa teks.',
+            'yoast_metadesc.max' => 'Meta description maksimal 500 karakter.',
+
+            'yoast_focuskw.string' => 'Focus keyword harus berupa teks.',
+            'yoast_focuskw.max' => 'Focus keyword maksimal 255 karakter.',
+
+            // ==================================================
+            // ACTION
+            // ==================================================
+
+            'action.required' => 'Aksi artikel wajib ditentukan.',
+            'action.in' => 'Aksi artikel tidak valid.',
+        ];
     }
 }

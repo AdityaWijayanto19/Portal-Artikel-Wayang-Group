@@ -15,31 +15,6 @@
 @section('content')
     <div class="space-y-6">
 
-        @if (session('success'))
-            <div
-                class="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs px-4 py-3 rounded-xl flex items-center justify-between shadow-sm">
-                <div class="flex items-center gap-2">
-                    <svg class="w-4 h-4 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                    </svg>
-                    <span>{{ session('success') }}</span>
-                </div>
-            </div>
-        @endif
-
-        @if (session('error'))
-            <div
-                class="bg-rose-50 border border-rose-200 text-rose-800 text-xs px-4 py-3 rounded-xl flex items-center justify-between shadow-sm">
-                <div class="flex items-center gap-2">
-                    <svg class="w-4 h-4 text-rose-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M12 8v4m0 4h.01M10.29 3.86l-8.4 14.52A2 2 0 003.62 21h16.76a2 2 0 001.73-2.62l-8.4-14.52a2 2 0 00-3.42 0z" />
-                    </svg>
-                    <span>{{ session('error') }}</span>
-                </div>
-            </div>
-        @endif
-
         <x-table :headers="['Situs', 'URL', 'Kategori', 'Username WP', ['label' => 'Aksi', 'align' => 'right']]" :search-action="route('wp-sites.index')" search-placeholder="Cari nama site atau url site..." :pagination="$wpSites->hasPages() ? $wpSites->appends(request()->query())->links() : null">
 
             <x-slot:filters>

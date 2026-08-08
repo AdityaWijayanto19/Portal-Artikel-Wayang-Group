@@ -15,18 +15,6 @@
 @section('content')
     <div class="space-y-6">
 
-        @if (session('success'))
-            <div
-                class="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs px-4 py-3 rounded-xl flex items-center justify-between shadow-sm">
-                <div class="flex items-center gap-2">
-                    <svg class="w-4 h-4 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                    </svg>
-                    <span>{{ session('success') }}</span>
-                </div>
-            </div>
-        @endif
-
         <x-table :headers="['Kategori', 'Slug', 'Perusahaan', ['label' => 'Aksi', 'align' => 'right']]" :search-action="route('categories.index')" search-placeholder="Cari nama atau slug..." :pagination="$categories->hasPages() ? $categories->appends(request()->query())->links() : null">
 
             <x-slot:filters>
@@ -76,7 +64,8 @@
                             <x-delete-modal action="{{ route('categories.destroy', $category) }}" title="Hapus Kategori?">
 
                                 <x-slot:message>
-                                    "<span class="font-semibold text-slate-700">{{ $category->name }}</span>" Kategori ini akan
+                                    "<span class="font-semibold text-slate-700">{{ $category->name }}</span>" Kategori ini
+                                    akan
                                     dihapus permanen. Tindakan ini tidak dapat dibatalkan.
                                 </x-slot:message>
 
