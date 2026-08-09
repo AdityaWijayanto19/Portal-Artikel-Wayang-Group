@@ -113,7 +113,7 @@
 
     {{-- Main Table Container --}}
     <div class="overflow-x-auto">
-        <table class="w-full">
+        <table {{ $attributes->merge(['class' => 'w-full']) }}>
             <thead class="bg-slate-50/70 border-b border-slate-100">
                 <tr>
                     @foreach($headers as $header)

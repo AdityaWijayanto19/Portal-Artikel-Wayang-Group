@@ -51,6 +51,7 @@ Route::middleware('auth')->group(function () {
 
         // Article & WordPress Publishing Management
         Route::get('/articles', [ArticleController::class, 'index'])->name('articles.index');
+        Route::get('/articles/publications/status', [ArticleController::class, 'publicationsStatus'])->name('articles.publications.status');
         Route::get('/articles/select', [ArticleController::class, 'selectCompany'])->name('articles.select');
         Route::get('/articles/company/{company}', [ArticleController::class, 'chooseCompany'])->name('articles.company');
         Route::get('/articles/create', [ArticleController::class, 'create'])->name('articles.create');
