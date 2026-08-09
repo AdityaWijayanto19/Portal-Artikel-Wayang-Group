@@ -104,7 +104,7 @@ class ArticleController extends Controller
 
         $publications = ArticleSitePublication::query()
             ->whereIn('article_id', $articles->pluck('id'))
-            ->with(['wpSite' => fn ($q) => $q->withoutGlobalScope(TenantScope::class)->select('id', 'site_name')])
+            ->with(['wpSite' => fn ($q) => $q->withoutGlobalScope(TenantScope::class)->select('id', 'site_name', 'site_url')])
             ->get(['article_id', 'wp_site_id', 'status', 'wp_post_id', 'published_url'])
             ->groupBy('article_id');
 
@@ -118,11 +118,18 @@ class ArticleController extends Controller
                             'wp_post_id' => $pub->wp_post_id,
                             'published_url' => $pub->published_url,
                             'site_name' => $pub->wpSite?->site_name,
+                            'site_url' => $pub->wpSite?->site_url,
                         ],
                     ])->all(),
                 ],
             ];
         });
+
+        Log::info('[ArticleMonitor] publicationsStatus', [
+            'requested_ids' => $ids,
+            'returned' => $result->count(),
+            'statuses' => $articles->pluck('status', 'id')->all(),
+        ]);
 
         return response()->json(['articles' => $result])
             ->header('Cache-Control', 'no-store, private');

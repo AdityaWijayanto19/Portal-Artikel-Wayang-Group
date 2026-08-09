@@ -34,7 +34,7 @@
 @endsection
 
 @section('content')
-    <div class="space-y-6">
+    <div class="space-y-6" x-data="articleStatusMonitor(@js(['articles' => $monitorArticles]))">
 
         <x-table :headers="[
             'Artikel',
@@ -55,13 +55,6 @@
                 @php
                     $score = (int) ($article->seoMeta->seo_score ?? ($article->seo_score ?? 0));
                     $scoreColor = $score >= 80 ? 'emerald' : ($score >= 60 ? 'amber' : 'rose');
-                    $statusMap = [
-                        'draft' => ['Draft', 'slate'],
-                        'queued' => ['Antrean', 'amber'],
-                        'published' => ['Terbit', 'emerald'],
-                        'failed' => ['Gagal', 'rose'],
-                    ];
-                    [$statusLabel, $statusColor] = $statusMap[$article->status] ?? ['—', 'slate'];
                 @endphp
                 <tr class="hover:bg-slate-50/80 transition align-top">
                     <td class="px-4 py-3">
@@ -103,65 +96,59 @@
                         <div class="space-y-1.5">
                             @forelse ($article->sitePublications as $pub)
                                 @php
-                                    [$pLabel, $pColor] = $statusMap[$pub->status] ?? ['—', 'slate'];
-                                    $published = $pub->status === 'published';
-                                    $postUrl = $published
-                                        ? ($pub->published_url ?:
-                                        ($pub->wp_post_id && $pub->wpSite
-                                            ? rtrim($pub->wpSite->site_url, '/') . '/?p=' . $pub->wp_post_id
-                                            : null))
-                                        : null;
-                                    // Bisa di-unpublish bila post sudah pernah dibuat di WP (ada wp_post_id).
-                                    $canUnpublish = (bool) ($pub->wp_post_id && $pub->wpSite);
+                                    $pubId = (string) $pub->wp_site_id;
+                                    $siteId = (string) $pub->wp_site_id;
                                 @endphp
                                 <div class="flex items-center gap-1.5">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-{{ $pColor }}-500 shrink-0"></span>
+                                    <span class="w-1.5 h-1.5 rounded-full shrink-0"
+                                        :class="pubStatus('{{ $article->id }}', '{{ $siteId }}') === 'published' ? 'bg-emerald-500'
+                                            : (pubStatus('{{ $article->id }}', '{{ $siteId }}') === 'queued' ? 'bg-amber-500'
+                                            : (pubStatus('{{ $article->id }}', '{{ $siteId }}') === 'failed' ? 'bg-rose-500'
+                                            : 'bg-slate-400'))"></span>
                                     <div class="min-w-0 flex-1">
-                                        @if ($published && $postUrl)
-                                            <a href="{{ $postUrl }}" target="_blank" rel="noopener"
-                                                class="inline-flex items-center gap-1 text-[11px] font-medium text-[#C59B27] hover:text-[#8a6d15] hover:underline truncate block max-w-[160px]"
-                                                title="Buka artikel di {{ $pub->wpSite->site_name ?? 'WordPress' }}">
-                                                <span
-                                                    class="truncate">{{ $pub->wpSite->site_name ?? 'Situs #' . $pub->wp_site_id }}</span>
-                                                <svg class="w-2.5 h-2.5 shrink-0" fill="none" stroke="currentColor"
-                                                    viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                                                </svg>
-                                            </a>
-                                        @else
-                                            <span
-                                                class="text-[11px] text-slate-600 truncate block max-w-[160px]">{{ $pub->wpSite->site_name ?? 'Situs #' . $pub->wp_site_id }}</span>
-                                        @endif
-                                        <span
-                                            class="text-[9px] text-{{ $pColor }}-600 font-semibold uppercase">{{ $pLabel }}</span>
+                                        <a href="#" x-cloak x-show="postUrl('{{ $article->id }}', '{{ $siteId }}')" :href="postUrl('{{ $article->id }}', '{{ $siteId }}')" target="_blank" rel="noopener"
+                                            class="inline-flex items-center gap-1 text-[11px] font-medium text-[#C59B27] hover:text-[#8a6d15] hover:underline truncate block max-w-[160px]"
+                                            :title="'Buka artikel di ' + siteName('{{ $article->id }}', '{{ $siteId }}')">
+                                            <span class="truncate" x-text="siteName('{{ $article->id }}', '{{ $siteId }}')"></span>
+                                            <svg class="w-2.5 h-2.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                            </svg>
+                                        </a>
+                                        <span x-cloak x-show="!postUrl('{{ $article->id }}', '{{ $siteId }}')"
+                                            class="text-[11px] text-slate-600 truncate block max-w-[160px]"
+                                            x-text="siteName('{{ $article->id }}', '{{ $siteId }}')"></span>
+                                        <span class="text-[9px] font-semibold uppercase"
+                                            :class="pubStatus('{{ $article->id }}', '{{ $siteId }}') === 'published' ? 'text-emerald-600'
+                                                : (pubStatus('{{ $article->id }}', '{{ $siteId }}') === 'queued' ? 'text-amber-600'
+                                                : (pubStatus('{{ $article->id }}', '{{ $siteId }}') === 'failed' ? 'text-rose-600'
+                                                : 'text-slate-500'))"
+                                            x-text="pubLabel(pubStatus('{{ $article->id }}', '{{ $siteId }}'))"></span>
                                     </div>
-                                    @if ($pub->status === 'failed' && $pub->wpSite)
-                                        <form action="{{ route('articles.retry', [$article, $pub->wpSite]) }}"
-                                            method="POST" class="inline shrink-0">
+                                    @if ($pub->wpSite)
+                                        <form x-cloak x-show="pubStatus('{{ $article->id }}', '{{ $siteId }}') === 'failed'"
+                                            action="{{ route('articles.retry', [$article, $pub->wpSite]) }}" method="POST"
+                                            class="inline shrink-0">
                                             @csrf
                                             <button type="submit"
                                                 class="text-amber-500 hover:text-amber-700 p-0.5 transition"
                                                 title="Retry publish di situs ini">
-                                                <svg class="w-3 h-3" fill="none" stroke="currentColor"
-                                                    viewBox="0 0 24 24">
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                         d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                                                 </svg>
                                             </button>
                                         </form>
-                                    @endif
-                                    @if ($canUnpublish)
-                                        <form action="{{ route('articles.sites.destroy', [$article, $pub->wpSite]) }}"
+                                        <form x-cloak x-show="canUnpublish('{{ $article->id }}', '{{ $siteId }}')"
+                                            action="{{ route('articles.sites.destroy', [$article, $pub->wpSite]) }}"
                                             method="POST" class="inline"
-                                            onsubmit="return confirm('Hapus publikasi dari {{ $pub->wpSite->site_name }}?');">
+                                            onsubmit="return confirm('Hapus publikasi dari situs ini?');">
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit"
                                                 class="text-rose-400 hover:text-rose-600 p-0.5 transition shrink-0"
                                                 title="Unpublish dari situs ini">
-                                                <svg class="w-3 h-3" fill="none" stroke="currentColor"
-                                                    viewBox="0 0 24 24">
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                         d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                                 </svg>
@@ -176,7 +163,12 @@
                     </td>
                     <td class="px-4 py-3 text-center">
                         <span
-                            class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-{{ $statusColor }}-50 text-{{ $statusColor }}-700 border border-{{ $statusColor }}-200/60">{{ $statusLabel }}</span>
+                            class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold"
+                            :class="articleStatus('{{ $article->id }}') === 'published' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60'
+                                : (articleStatus('{{ $article->id }}') === 'queued' ? 'bg-amber-50 text-amber-700 border border-amber-200/60'
+                                : (articleStatus('{{ $article->id }}') === 'failed' ? 'bg-rose-50 text-rose-700 border border-rose-200/60'
+                                : 'bg-slate-50 text-slate-700 border border-slate-200/60'))"
+                            x-text="statusLabel(articleStatus('{{ $article->id }}'))"></span>
                     </td>
                     <td class="px-4 py-3 whitespace-nowrap">
                         <div class="flex items-center justify-end gap-1.5">
@@ -191,38 +183,32 @@
                             </a>
 
                             {{-- Tombol Publish --}}
-                            @if ($article->status === 'draft' && $score >= 80)
-                                <form action="{{ route('articles.publish', $article) }}" method="POST"
-                                    class="inline-flex">
-                                    @csrf
-                                    <button type="submit"
-                                        class="p-1.5 inline-flex items-center justify-center bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded transition"
-                                        title="Publish ke WordPress (buat post di semua situs target)">
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor"
-                                            viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M5 10l7-7m0 0l7 7m-7-7v18" />
-                                        </svg>
-                                    </button>
-                                </form>
-                            @endif
+                            <form x-cloak x-show="articleStatus('{{ $article->id }}') === 'draft' && articleScore('{{ $article->id }}') >= 80"
+                                action="{{ route('articles.publish', $article) }}" method="POST" class="inline-flex">
+                                @csrf
+                                <button type="submit"
+                                    class="p-1.5 inline-flex items-center justify-center bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded transition"
+                                    title="Publish ke WordPress (buat post di semua situs target)">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                                    </svg>
+                                </button>
+                            </form>
 
                             {{-- Tombol Retry --}}
-                            @if ($article->status === 'failed')
-                                <form action="{{ route('articles.retry', $article) }}" method="POST"
-                                    class="inline-flex">
-                                    @csrf
-                                    <button type="submit"
-                                        class="p-1.5 inline-flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-600 rounded transition"
-                                        title="Retry semua situs yang gagal (bukan yang sudah berhasil)">
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor"
-                                            viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                        </svg>
-                                    </button>
-                                </form>
-                            @endif
+                            <form x-cloak x-show="articleStatus('{{ $article->id }}') === 'failed'"
+                                action="{{ route('articles.retry', $article) }}" method="POST" class="inline-flex">
+                                @csrf
+                                <button type="submit"
+                                    class="p-1.5 inline-flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-600 rounded transition"
+                                    title="Retry semua situs yang gagal (bukan yang sudah berhasil)">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                </button>
+                            </form>
 
                             {{-- Hapus Artikel + Modal Konfirmasi --}}
                             <x-delete-modal action="{{ route('articles.destroy', $article) }}" title="Hapus Artikel?">
@@ -247,3 +233,186 @@
         </x-table>
     </div>
 @endsection
+
+@push('scripts')
+    <script>
+        /**
+         * Smart polling status artikel & publikasi per-situs.
+         *
+         * Hanya aktif saat ada artikel yang belum "settled" (queued) — setelah
+         * semuanya berstatus draft/published/failed, polling berhenti otomatis.
+         * Jeda saat tab tidak terlihat (visibilitychange) untuk hemat resource.
+         */
+        function articleStatusMonitor(initial) {
+            return {
+                articles: initial.articles || {},
+                timer: null,
+                intervalMs: 5000,
+
+                init() {
+                    document.addEventListener('visibilitychange', () => {
+                        if (document.hidden) {
+                            this.stop();
+                        } else {
+                            this.schedule();
+                        }
+                    });
+                    this.schedule();
+                },
+
+                article(id) {
+                    return this.articles[id] || {};
+                },
+
+                articleStatus(id) {
+                    return this.article(id).status || 'draft';
+                },
+
+                articleScore(id) {
+                    return this.article(id).score || 0;
+                },
+
+                pub(id, siteId) {
+                    return (this.article(id).pubs || {})[siteId] || {};
+                },
+
+                pubStatus(id, siteId) {
+                    return this.pub(id, siteId).status || 'draft';
+                },
+
+                siteName(id, siteId) {
+                    return this.pub(id, siteId).site_name || ('Situs #' + siteId);
+                },
+
+                postUrl(id, siteId) {
+                    const p = this.pub(id, siteId);
+                    if (p.status !== 'published') {
+                        return null;
+                    }
+                    if (p.published_url) {
+                        return p.published_url;
+                    }
+                    if (p.wp_post_id && p.site_url) {
+                        return rtrim(p.site_url, '/') + '/?p=' + p.wp_post_id;
+                    }
+                    return null;
+                },
+
+                canUnpublish(id, siteId) {
+                    return !!(this.pub(id, siteId).wp_post_id);
+                },
+
+                statusLabel(status) {
+                    return {
+                        draft: 'Draft',
+                        queued: 'Antrean',
+                        published: 'Terbit',
+                        failed: 'Gagal',
+                    }[status] || '—';
+                },
+
+                pubLabel(status) {
+                    return this.statusLabel(status);
+                },
+
+                // Ada artikel yang masih berstatus antrean (belum selesai dipublish)?
+                hasPending() {
+                    return Object.values(this.articles).some(a => a.status === 'queued');
+                },
+
+                // Daftar id artikel yang masih perlu di-poll (statusnya queued).
+                pendingIds() {
+                    return Object.keys(this.articles)
+                        .filter(id => this.articleStatus(id) === 'queued')
+                        .map(id => parseInt(id, 10));
+                },
+
+                schedule() {
+                    this.stop();
+
+                    if (document.hidden) {
+                        return;
+                    }
+
+                    if (!this.hasPending()) {
+                        console.debug('[ArticleMonitor] tidak ada artikel queued, polling berhenti.');
+                        return;
+                    }
+
+                    console.debug('[ArticleMonitor] polling dijadwalkan dalam', this.intervalMs + 'ms');
+                    this.timer = setTimeout(() => this.poll(), this.intervalMs);
+                },
+
+                stop() {
+                    if (this.timer) {
+                        clearTimeout(this.timer);
+                        this.timer = null;
+                    }
+                },
+
+                async poll() {
+                    const ids = this.pendingIds();
+
+                    if (ids.length === 0) {
+                        console.debug('[ArticleMonitor] tidak ada id pending, polling berhenti.');
+                        return;
+                    }
+
+                    console.debug('[ArticleMonitor] poll article_ids=', ids);
+
+                    try {
+                        const url = new URL('{{ route('articles.publications.status') }}', window.location.origin);
+                        ids.forEach(id => url.searchParams.append('article_ids[]', id));
+
+                        const res = await fetch(url, {
+                            headers: {
+                                'Accept': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') || {}).content || '',
+                            },
+                        });
+
+                        if (!res.ok) {
+                            throw new Error('HTTP ' + res.status + ' ' + res.statusText);
+                        }
+
+                        const data = await res.json();
+                        console.debug('[ArticleMonitor] respon diterima:', data);
+
+                        this.applyUpdates(data.articles || {});
+                    } catch (e) {
+                        console.warn('[ArticleMonitor] polling gagal:', e);
+                    } finally {
+                        this.schedule();
+                    }
+                },
+
+                applyUpdates(updates) {
+                    for (const [id, next] of Object.entries(updates)) {
+                        if (!this.articles[id]) {
+                            continue;
+                        }
+
+                        this.articles[id].status = next.status;
+
+                        for (const [siteId, pub] of Object.entries(next.publications || {})) {
+                            if (this.articles[id].pubs[siteId]) {
+                                this.articles[id].pubs[siteId] = {
+                                    ...this.articles[id].pubs[siteId],
+                                    ...pub,
+                                };
+                            } else {
+                                this.articles[id].pubs[siteId] = pub;
+                            }
+                        }
+                    }
+                },
+            };
+        }
+
+        function rtrim(value, chars) {
+            const regex = new RegExp('[' + chars.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ']+$');
+            return String(value).replace(regex, '');
+        }
+    </script>
+@endpush

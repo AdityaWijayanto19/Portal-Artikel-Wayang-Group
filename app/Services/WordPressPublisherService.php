@@ -354,14 +354,14 @@ class WordPressPublisherService
             foreach ($categoryLookups as $name => $plan) {
                 if (! $plan['cache']) {
                     $requests[] = $this->poolRequest($pool, 'categories:'.$name, $site, 15)
-                        ->get('/categories', ['search' => $name, 'per_page' => 1]);
+                        ->get('/categories', ['search' => $name, 'per_page' => 50]);
                 }
             }
 
             foreach ($tagLookups as $name => $plan) {
                 if (! $plan['cache']) {
                     $requests[] = $this->poolRequest($pool, 'tags:'.$name, $site, 15)
-                        ->get('/tags', ['search' => $name, 'per_page' => 1]);
+                        ->get('/tags', ['search' => $name, 'per_page' => 50]);
                 }
             }
 
@@ -599,18 +599,21 @@ class WordPressPublisherService
                     'message' => $response->getMessage(),
                 ]);
 
-                // Abaikan kegagalan lookup satu term — tidak menggagalkan publikasi.
+                // Lookup gagal (timeout/429/network) — jangan buang tag diam-diam;
+                // arahkan ke fase create supaya tetap dicoba dibuat di WordPress.
+                $toCreate[] = $name;
+
                 continue;
             }
 
             if ($response && $response->successful()) {
-                $existing = collect($response->json())->firstWhere('name', $name)['id'] ?? null;
+                $existingId = $this->findExistingTermId($response->json(), $name);
 
-                if ($existing) {
-                    $ids[] = (int) $existing;
-                    $this->cacheTermId($site->id, $taxonomy, $name, (int) $existing);
+                if ($existingId !== null) {
+                    $ids[] = $existingId;
+                    $this->cacheTermId($site->id, $taxonomy, $name, $existingId);
 
-                    Log::info('[WPPublish] Term found', ['taxonomy' => $taxonomy, 'name' => $name, 'id' => $existing]);
+                    Log::info('[WPPublish] Term found', ['taxonomy' => $taxonomy, 'name' => $name, 'id' => $existingId]);
 
                     continue;
                 }
@@ -623,6 +626,32 @@ class WordPressPublisherService
         return [array_values(array_unique($ids)), array_values(array_unique($toCreate))];
     }
 
+    /**
+     * Cari ID term yang cocok secara PERSIS (case-insensitive) dari hasil
+     * respons pencarian WP. WP mengembalikan fuzzy match (LIKE), jadi tanpa
+     * filter ketat ini tag yang namanya mirip bisa dianggap belum ada.
+     *
+     * @param  array<int, array<string, mixed>>|null  $terms
+     */
+    private function findExistingTermId(?array $terms, string $name): ?int
+    {
+        if (empty($terms)) {
+            return null;
+        }
+
+        $needle = mb_strtolower(trim($name));
+
+        foreach ($terms as $term) {
+            $candidate = mb_strtolower((string) ($term['name'] ?? ''));
+
+            if ($candidate === $needle && isset($term['id'])) {
+                return (int) $term['id'];
+            }
+        }
+
+        return null;
+    }
+
     private function cacheTermId(int $siteId, string $taxonomy, string $name, int $id): void
     {
         Cache::put("wp_term_id_site_{$siteId}_{$taxonomy}_".mb_strtolower($name), $id, now()->addDays(7));
@@ -632,6 +661,11 @@ class WordPressPublisherService
      * Buat term kategori/tag di situs target. Kegagalan (HTTP error atau
      * exception) hanya dicatat log dan mengembalikan null — tidak menggagalkan
      * seluruh publikasi.
+     *
+     * Fallback penting: bila POST create gagal karena term sebenarnya SUDAH ada
+     * di WordPress (mis. 400 duplicate akibat race / lookup tadi miss), lakukan
+     * pencarian ulang persis dan pakai ID yang ada — alih-alih mengembalikan
+     * null dan kehilangan tag dari payload.
      */
     private function createTerm(PendingRequest $client, string $taxonomy, string $name): ?int
     {
@@ -651,6 +685,32 @@ class WordPressPublisherService
             ]);
         } catch (\Throwable $e) {
             Log::warning('[WPPublish] Term create exception', [
+                'taxonomy' => $taxonomy,
+                'name' => $name,
+                'exception' => get_class($e),
+                'message' => $e->getMessage(),
+            ]);
+        }
+
+        // Term kemungkinan sudah ada → cari ID-nya supaya tidak hilang dari payload.
+        try {
+            $lookup = $client->get("/{$taxonomy}", ['search' => $name, 'per_page' => 50]);
+
+            if ($lookup->successful()) {
+                $existingId = $this->findExistingTermId($lookup->json(), $name);
+
+                if ($existingId !== null) {
+                    Log::info('[WPPublish] Term reused after failed create', [
+                        'taxonomy' => $taxonomy,
+                        'name' => $name,
+                        'id' => $existingId,
+                    ]);
+
+                    return $existingId;
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::warning('[WPPublish] Term reuse lookup failed', [
                 'taxonomy' => $taxonomy,
                 'name' => $name,
                 'exception' => get_class($e),

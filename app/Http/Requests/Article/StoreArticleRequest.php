@@ -25,9 +25,9 @@ class StoreArticleRequest extends FormRequest
 
         // Tenant guard: hanya izinkan relasi milik company yang sama agar tidak bocor antar holding.
         $categoryExists = Rule::exists('categories', 'id')
-            ->where(fn($q) => $q->where('company_id', $companyId));
+            ->where(fn ($q) => $q->where('company_id', $companyId));
         $wpSiteExists = Rule::exists('wp_sites', 'id')
-            ->where(fn($q) => $q->where('company_id', $companyId));
+            ->where(fn ($q) => $q->where('company_id', $companyId));
 
         return [
             'company_id' => ['required', 'integer', Rule::in($this->allowedCompanyIds())],
@@ -103,12 +103,15 @@ class StoreArticleRequest extends FormRequest
     /**
      * Normalisasi input tag menjadi array nama tag yang bersih & unik.
      *
+     * Tag dikirim sebagai string ber-pemisah enter (dari komponen frontend)
+     * atau array; koma tetap ditoleransi sebagai fallback non-JS.
+     *
      * @return array<int, string>
      */
     protected function normalizeTags(mixed $tags): array
     {
         if (is_string($tags)) {
-            $tags = explode(',', $tags);
+            $tags = preg_split('/[\r\n,]+/', $tags) ?: [];
         }
 
         if (! is_array($tags)) {
@@ -116,8 +119,8 @@ class StoreArticleRequest extends FormRequest
         }
 
         return collect($tags)
-            ->map(fn($tag) => trim((string) $tag))
-            ->filter(fn(string $tag) => $tag !== '')
+            ->map(fn ($tag) => trim((string) $tag))
+            ->filter(fn (string $tag) => $tag !== '')
             ->unique()
             ->values()
             ->all();

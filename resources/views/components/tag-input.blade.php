@@ -2,7 +2,7 @@
     'name' => 'tags',
     'label' => 'Tag',
     'value' => [],
-    'placeholder' => 'Ketik tag lalu tekan Enter atau koma...',
+    'placeholder' => 'Ketik tag lalu tekan Enter atau tanda #...',
 ])
 
 @php
@@ -11,8 +11,8 @@
         $initial = $initial->pluck('name')->all();
     }
     if (is_string($initial)) {
-        // Splitting berdasarkan koma, enter, spasi, atau hashtag
-        $initial = preg_split('/[\r\n,\s#]+/', $initial);
+        // Splitting hanya berdasarkan enter atau hashtag
+        $initial = preg_split('/[\r\n#]+/', $initial);
     }
     $initial = collect($initial ?? [])
         ->map(fn ($t) => is_object($t) ? ($t->name ?? '') : (string) $t)
@@ -50,8 +50,6 @@
             x-model="draft"
             @input="handleInput()"
             @keydown.enter.prevent="commit()"
-            @keydown.comma.prevent="commit()"
-            @keydown.space="commitOnSpace()"
             @keydown.backspace="draft === '' && removeLast()"
             @blur="commit()"
             placeholder="{{ $placeholder }}"
@@ -61,7 +59,7 @@
 
     <input type="hidden" name="{{ $name }}" x-ref="tagsInput" value="{{ $initialJoined }}">
 
-    <p class="text-[11px] text-slate-400">Pisahkan dengan koma, enter, spasi, atau hashtag (#).</p>
+    <p class="text-[11px] text-slate-400">Pisahkan dengan Enter atau tanda hashtag (#).</p>
 
     @error($name)
         <p class="text-[11px] text-rose-500 font-medium mt-1">{{ $message }}</p>
@@ -83,25 +81,17 @@
                         this.sync();
                     },
 
-                    // Deteksi jika input memuat koma, enter, spasi, atau tanda #
+                    // Deteksi jika input memuat enter atau tanda #
                     handleInput() {
-                        if (/[\r\n,\s#]/.test(this.draft)) {
+                        if (/[\r\n#]/.test(this.draft)) {
                             this.commit();
                         }
                     },
 
-                    // Menangani khusus saat user ketik spasi manual
-                    commitOnSpace() {
-                        // Jika bukan sedang mengetik kata berkarakter biasa, commit
-                        if (this.draft.trim() !== '') {
-                            this.commit();
-                        }
-                    },
-
-                    // Break kata berdasarkan koma, enter, spasi, maupun hashtag (#)
+                    // Break kata berdasarkan enter atau hashtag (#)
                     commit() {
                         const parts = this.draft
-                            .split(/[\r\n,\s#]+/)
+                            .split(/[\r\n#]+/)
                             .map(s => s.trim())
                             .map(s => s.replace(/^#+/, '')) // Buang tanda # di depan kata kalau terbawa
                             .filter(s => s !== '');
@@ -127,7 +117,7 @@
 
                     sync() {
                         if (this.$refs.tagsInput) {
-                            this.$refs.tagsInput.value = this.tags.join(',');
+                            this.$refs.tagsInput.value = this.tags.join('\n');
                         }
                     },
                 };

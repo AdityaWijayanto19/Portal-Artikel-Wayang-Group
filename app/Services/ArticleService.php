@@ -285,7 +285,13 @@ class ArticleService
     public function listForCompany(int $companyId): Collection
     {
         return Article::withoutGlobalScope(TenantScope::class)
-            ->with(['seoMeta', 'categories', 'tags', 'sitePublications.wpSite', 'author'])
+            ->with([
+                'seoMeta',
+                'categories' => fn ($q) => $q->withoutGlobalScope(TenantScope::class)->where('company_id', $companyId),
+                'tags' => fn ($q) => $q->withoutGlobalScope(TenantScope::class)->where('company_id', $companyId),
+                'sitePublications.wpSite' => fn ($q) => $q->withoutGlobalScope(TenantScope::class)->where('company_id', $companyId),
+                'author',
+            ])
             ->forCompany($companyId)
             ->latest()
             ->get();
@@ -299,7 +305,13 @@ class ArticleService
     public function paginateForCompany(int $companyId, ?string $search = null, int $perPage = 10): LengthAwarePaginator
     {
         return Article::withoutGlobalScope(TenantScope::class)
-            ->with(['seoMeta', 'categories', 'tags', 'sitePublications.wpSite', 'author'])
+            ->with([
+                'seoMeta',
+                'categories' => fn ($q) => $q->withoutGlobalScope(TenantScope::class)->where('company_id', $companyId),
+                'tags' => fn ($q) => $q->withoutGlobalScope(TenantScope::class)->where('company_id', $companyId),
+                'sitePublications.wpSite' => fn ($q) => $q->withoutGlobalScope(TenantScope::class)->where('company_id', $companyId),
+                'author',
+            ])
             ->forCompany($companyId)
             ->when($search, function ($query, $search) {
                 $query->where(function ($q) use ($search) {
