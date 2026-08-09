@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\Article\StoreArticleRequest;
 use App\Http\Requests\Article\UpdateArticleRequest;
 use App\Models\Article;
+use App\Models\ArticleSitePublication;
 use App\Models\Category;
 use App\Models\Company;
 use App\Models\Scopes\TenantScope;
@@ -13,6 +14,7 @@ use App\Models\User;
 use App\Models\WPSite;
 use App\Services\ArticleService;
 use App\Support\ArticleContext;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -30,8 +32,8 @@ class ArticleController extends Controller
         if ($user->isSuperAdmin() && ! ArticleContext::hasCompany()) {
             $companies = Company::query()
                 ->withCount([
-                    'articles' => fn($q) => $q->withoutGlobalScope(TenantScope::class),
-                    'wpSites' => fn($q) => $q->withoutGlobalScope(TenantScope::class),
+                    'articles' => fn ($q) => $q->withoutGlobalScope(TenantScope::class),
+                    'wpSites' => fn ($q) => $q->withoutGlobalScope(TenantScope::class),
                     'users',
                 ])
                 ->orderBy('name')
@@ -46,7 +48,84 @@ class ArticleController extends Controller
         $company = Company::findOrFail($companyId);
         $articles = $this->articleService->paginateForCompany($companyId, $request->string('search')->toString() ?: null);
 
-        return view('articles.index', compact('company', 'articles'));
+        // Snapshot awal untuk monitor status realtime di sisi klien (smart polling).
+        $monitorArticles = $articles->getCollection()->mapWithKeys(function (Article $article) {
+            return [
+                (string) $article->id => [
+                    'status' => $article->status,
+                    'score' => (int) ($article->seoMeta->seo_score ?? ($article->seo_score ?? 0)),
+                    'pubs' => $article->sitePublications->mapWithKeys(fn ($pub) => [
+                        (string) $pub->wp_site_id => [
+                            'status' => $pub->status,
+                            'wp_post_id' => $pub->wp_post_id,
+                            'published_url' => $pub->published_url,
+                            'site_name' => $pub->wpSite?->site_name,
+                            'site_url' => $pub->wpSite?->site_url,
+                        ],
+                    ])->all(),
+                ],
+            ];
+        })->all();
+
+        return view('articles.index', compact('company', 'articles', 'monitorArticles'));
+    }
+
+    /**
+     * Endpoint ringan untuk smart polling status publikasi artikel di halaman index.
+     *
+     * Hanya mengembalikan status artikel + publikasi per-situs untuk id yang
+     * diminta (maks 50) dan DIISOLASI pada perusahaan konteks (ArticleContext),
+     * sehingga user tidak bisa membaca status artikel milik perusahaan lain.
+     */
+    public function publicationsStatus(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'article_ids' => ['present', 'array', 'max:50'],
+            'article_ids.*' => ['integer', 'min:1'],
+        ]);
+
+        $companyId = ArticleContext::companyId();
+        abort_if($companyId === null, 403, 'Perusahaan tidak dapat ditentukan.');
+
+        $ids = array_values(array_unique(array_map('intval', $validated['article_ids'])));
+
+        if (empty($ids)) {
+            return response()->json(['articles' => new \stdClass]);
+        }
+
+        $articles = Article::withoutGlobalScope(TenantScope::class)
+            ->where('company_id', $companyId)
+            ->whereIn('id', $ids)
+            ->get(['id', 'status']);
+
+        if ($articles->isEmpty()) {
+            return response()->json(['articles' => new \stdClass]);
+        }
+
+        $publications = ArticleSitePublication::query()
+            ->whereIn('article_id', $articles->pluck('id'))
+            ->with(['wpSite' => fn ($q) => $q->withoutGlobalScope(TenantScope::class)->select('id', 'site_name')])
+            ->get(['article_id', 'wp_site_id', 'status', 'wp_post_id', 'published_url'])
+            ->groupBy('article_id');
+
+        $result = $articles->mapWithKeys(function (Article $article) use ($publications) {
+            return [
+                (string) $article->id => [
+                    'status' => $article->status,
+                    'publications' => collect($publications[$article->id] ?? [])->mapWithKeys(fn ($pub) => [
+                        (string) $pub->wp_site_id => [
+                            'status' => $pub->status,
+                            'wp_post_id' => $pub->wp_post_id,
+                            'published_url' => $pub->published_url,
+                            'site_name' => $pub->wpSite?->site_name,
+                        ],
+                    ])->all(),
+                ],
+            ];
+        });
+
+        return response()->json(['articles' => $result])
+            ->header('Cache-Control', 'no-store, private');
     }
 
     public function chooseCompany(Request $request, Company $company): RedirectResponse
@@ -123,7 +202,8 @@ class ArticleController extends Controller
 
             return redirect()->route('articles.index')->with('success', 'Draft berhasil disimpan.');
         } catch (\Throwable $th) {
-            Log::error('Gagal menambahkan artikel: ' . $th->getMessage());
+            Log::error('Gagal menambahkan artikel: '.$th->getMessage());
+
             return back()
                 ->with('error', 'Terjadi kesalahan sistem. Gagal menambahkan artikel.')
                 ->withInput();
@@ -159,7 +239,8 @@ class ArticleController extends Controller
 
             return redirect()->route('articles.index')->with('success', 'Artikel berhasil diperbarui.');
         } catch (\Throwable $th) {
-            Log::error('Gagal memperbarui artikel: ' . $th->getMessage());
+            Log::error('Gagal memperbarui artikel: '.$th->getMessage());
+
             return back()
                 ->with('error', 'Terjadi kesalahan sistem. Gagal memperbarui artikel.')
                 ->withInput();
@@ -204,7 +285,8 @@ class ArticleController extends Controller
             return redirect()->route('articles.index')
                 ->with('success', 'Artikel berhasil dihapus beserta post-nya dari situs WordPress target.');
         } catch (\Throwable $th) {
-            Log::error('Gagal menghapus artikel: ' . $th->getMessage());
+            Log::error('Gagal menghapus artikel: '.$th->getMessage());
+
             return back()
                 ->with('error', 'Terjadi kesalahan sistem. Gagal menghapus artikel.')
                 ->withInput();
@@ -224,9 +306,10 @@ class ArticleController extends Controller
 
             $this->articleService->deleteSitePublication($article, $publication);
 
-            return back()->with('success', 'Publikasi dihapus dari situs "' . ($publication->wpSite->site_name ?? '#' . $wpSite) . '".');
+            return back()->with('success', 'Publikasi dihapus dari situs "'.($publication->wpSite->site_name ?? '#'.$wpSite).'".');
         } catch (\Throwable $th) {
-            Log::error('Gagal hapus publikasi situs: ' . $th->getMessage());
+            Log::error('Gagal hapus publikasi situs: '.$th->getMessage());
+
             return back()
                 ->with('error', 'Terjadi kesalahan sistem. Gagal hapus publikasi situs.')
                 ->withInput();

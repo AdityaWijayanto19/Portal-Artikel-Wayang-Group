@@ -6,6 +6,9 @@ use App\Models\Article;
 use App\Models\User;
 use App\Models\WPSite;
 use Illuminate\Http\Client\PendingRequest;
+use Illuminate\Http\Client\Pool;
+use Illuminate\Http\Client\Response;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -17,11 +20,8 @@ class WordPressPublisherService
 
     private const USER_AGENT = 'Mozilla/5.0 WayangGroup/1.0';
 
-    private const UPLOAD_MAX_RETRIES = 3;
-
     public function __construct(
         private readonly SeoAnalyzerService $seoAnalyzer,
-        private readonly WpAuthorResolverService $authorResolver,
     ) {}
 
     /**
@@ -48,7 +48,6 @@ class WordPressPublisherService
 
         $article->loadMissing(['seoMeta', 'categories', 'tags', 'author', 'sitePublications']);
         $analysis = $this->seoAnalyzer->analyze($this->seoInput($article));
-        $authorId = $this->resolveWordPressAuthorId($site, $article->author);
 
         // Mapping wp_post_id pada situs target — penentu alur create vs update (Task 3).
         $existingPostId = $article->sitePublications
@@ -56,7 +55,6 @@ class WordPressPublisherService
 
         Log::info('[WPPublish] Resolved', [
             'article_id' => $article->id,
-            'author_id' => $authorId,
             'existing_post_id' => $existingPostId,
             'simulate' => $this->shouldSimulate($site),
         ]);
@@ -69,18 +67,16 @@ class WordPressPublisherService
                 'success' => true,
                 'wp_post_id' => $existingPostId ?? random_int(1000, 9999),
                 'wp_media_id' => $mediaId,
-                'author_id' => $authorId,
+                'author_id' => null,
                 'published_url' => null,
                 'message' => 'Simulated WordPress publish for local/demo target ('.$site->site_name.').',
-                'payload' => $this->buildPayload($article, $mediaId, $authorId, [], []),
+                'payload' => $this->buildPayload($article, $mediaId, null, [], []),
                 'meta_warning' => null,
             ];
         }
 
-        $client = $this->client($site);
-
         try {
-            return $this->publishToLive($client, $article, $site, $authorId, $existingPostId, $analysis);
+            return $this->publishToLive($article, $site, $existingPostId, $analysis);
         } catch (\Throwable $e) {
             Log::error('[WPPublish] FAILED', [
                 'article_id' => $article->id,
@@ -96,25 +92,73 @@ class WordPressPublisherService
     }
 
     private function publishToLive(
-        PendingRequest $client,
         Article $article,
         WPSite $site,
-        ?int $authorId,
         ?int $existingPostId,
         array $analysis,
     ): array {
-        Log::info('[WPPublish] Uploading featured image', ['article_id' => $article->id, 'path' => $article->featured_image_path]);
-        $mediaId = $this->uploadFeaturedImage($site, $article);
-        Log::info('[WPPublish] Featured image done', ['article_id' => $article->id, 'media_id' => $mediaId]);
+        $waveStart = microtime(true);
 
-        // Client baru yang BERSIH untuk fase term & artikel. Jangan pernah memakai
-        // objek PendingRequest yang sudah melalui withBody()/attach() — state-nya
-        // persisten (bodyFormat, Content-Type, Content-Disposition) dan merusak
-        // request berikutnya (mis. POST /posts jadi body kosong → 403 WAF).
+        Log::info('[WPPublish] Building parallel first wave', [
+            'article_id' => $article->id,
+            'path' => $article->featured_image_path,
+            'categories' => $article->categories->pluck('name')->all(),
+            'tags' => $article->tags->pluck('name')->all(),
+        ]);
+
+        $authorSearch = $this->authorSearchDescriptor($site, $article->author);
+        $categoryLookups = $this->termLookupPlan($site, 'categories', $article->categories->pluck('name')->all());
+        $tagLookups = $this->termLookupPlan($site, 'tags', $article->tags->pluck('name')->all());
+        $imagePlan = $this->imageUploadPlan($article);
+
+        // GELOMBANG PARALEL: resolusi author, upload gambar, dan pencarian term
+        // kategori/tag berjalan BERSAMAAN (Http::pool → satu CurlMultiHandler,
+        // koneksi di-reuse + 1 TLS handshake). Request serial 8–12 → 1 wave.
+        $responses = $this->runFirstWave($site, $authorSearch, $categoryLookups, $tagLookups, $imagePlan);
+
+        $authorId = $this->resolveAuthorFromWave($site, $authorSearch, $responses);
+        $mediaId = $this->resolveImageFromWave($site, $article, $imagePlan, $responses);
+
+        [$categoryIds, $categoriesToCreate] = $this->resolveTermsFromWave($site, 'categories', $categoryLookups, $responses);
+        [$tagIds, $tagsToCreate] = $this->resolveTermsFromWave($site, 'tags', $tagLookups, $responses);
+
+        Log::info('[WPPublish] First wave resolved', [
+            'article_id' => $article->id,
+            'author_id' => $authorId,
+            'media_id' => $mediaId,
+            'category_ids' => $categoryIds,
+            'tag_ids' => $tagIds,
+            'categories_to_create' => $categoriesToCreate,
+            'tags_to_create' => $tagsToCreate,
+            'wave_ms' => round((microtime(true) - $waveStart) * 1000, 2),
+        ]);
+
+        // Client baru yang BERSIH untuk fase term-create & artikel. Jangan pernah
+        // memakai objek PendingRequest yang sudah melalui withBody()/attach() —
+        // state-nya persisten (bodyFormat, Content-Type, Content-Disposition) dan
+        // merusak request berikutnya (mis. POST /posts jadi body kosong → 403 WAF).
         $client = $this->client($site);
 
-        $categoryIds = $this->resolveTerms($client, 'categories', $article->categories->pluck('name')->all());
-        $tagIds = $this->resolveTerms($client, 'tags', $article->tags->pluck('name')->all());
+        foreach ($categoriesToCreate as $name) {
+            $termId = $this->createTerm($client, 'categories', $name);
+
+            if ($termId !== null) {
+                $categoryIds[] = $termId;
+                $this->cacheTermId($site->id, 'categories', $name, $termId);
+            }
+        }
+
+        foreach ($tagsToCreate as $name) {
+            $termId = $this->createTerm($client, 'tags', $name);
+
+            if ($termId !== null) {
+                $tagIds[] = $termId;
+                $this->cacheTermId($site->id, 'tags', $name, $termId);
+            }
+        }
+
+        $categoryIds = array_values(array_unique($categoryIds));
+        $tagIds = array_values(array_unique($tagIds));
 
         $payload = $this->buildPayload($article, $mediaId, $authorId, $categoryIds, $tagIds);
 
@@ -180,19 +224,72 @@ class WordPressPublisherService
     }
 
     /**
-     * Unggah featured image ke /wp/v2/media milik situs ini dan kembalikan media_id.
+     * Deskriptor pencarian author WP. Hasil positif di-cache 7 hari (kunci sama
+     * dengan WpAuthorResolverService) sehingga situs yang sama tidak perlu
+     * melakukan lookup ulang.
      *
-     * Meniru strategi Python teman user SECARA PERSIS:
-     *   - RAW BODY (bukan multipart) + header `Content-Type` & `Content-Disposition`
-     *     `attachment; filename="..."`. Multipart kena blokir WAF (403 HTML) di
-     *     beberapa situs (Wordfence/ModSecurity/Cloudflare), raw body tidak.
-     *   - Beberapa percobaan dengan exponential backoff (2s, 4s, 8s).
-     *   - Timeout panjang (120s) karena media mentah bisa berukuran besar.
-     *
-     * Kegagalan total mengembalikan null — artikel tetap dipublikasikan tanpa
-     * gambar unggulan (tidak mematikan alur publish).
+     * @return array{cache: bool, id: int|null, key: string, username: string, email: string}|null
      */
-    private function uploadFeaturedImage(WPSite $site, Article $article): ?int
+    private function authorSearchDescriptor(WPSite $site, ?User $author): ?array
+    {
+        if ($author === null) {
+            return null;
+        }
+
+        $username = strtolower(trim((string) $author->username));
+        $email = strtolower(trim((string) ($author->email ?? '')));
+
+        if ($username === '') {
+            return null;
+        }
+
+        $key = "wp_author_id_site_{$site->id}_{$username}_{$email}";
+        $cached = Cache::get($key);
+
+        return [
+            'cache' => is_numeric($cached),
+            'id' => is_numeric($cached) ? (int) $cached : null,
+            'key' => $key,
+            'username' => $username,
+            'email' => $email,
+        ];
+    }
+
+    /**
+     * Rencana lookup term (kategori/tag): term yang sudah pernah ditemukan/
+     * dibuat pada situs ini di-cache 7 hari sehingga publish berikutnya TIDAK
+     * melakukan request ke WP sama sekali untuk term tersebut.
+     *
+     * @param  array<int, string>  $names
+     * @return array<string, array{cache: bool, id: int|null, key: string}>
+     */
+    private function termLookupPlan(WPSite $site, string $taxonomy, array $names): array
+    {
+        $plan = [];
+
+        foreach (array_filter(array_map('trim', $names)) as $name) {
+            $key = "wp_term_id_site_{$site->id}_{$taxonomy}_".mb_strtolower($name);
+            $cached = Cache::get($key);
+
+            $plan[$name] = [
+                'cache' => is_numeric($cached),
+                'id' => is_numeric($cached) ? (int) $cached : null,
+                'key' => $key,
+            ];
+        }
+
+        return $plan;
+    }
+
+    /**
+     * Baca berkas featured image siap kirim (RAW BODY, bukan multipart). Meniru
+     * strategi Python: header `Content-Type` & `Content-Disposition` `attachment;
+     * filename="..."` — multipart kena blokir WAF (403 HTML) di beberapa situs
+     * (Wordfence/ModSecurity/Cloudflare), raw body tidak.
+     *
+     * @return array{body: string, mime: string, filename: string}|null
+     */
+    private function imageUploadPlan(Article $article): ?array
     {
         if (! $article->featured_image_path) {
             return null;
@@ -206,58 +303,243 @@ class WordPressPublisherService
 
         $filename = basename($article->featured_image_path);
 
-        for ($attempt = 1; $attempt <= self::UPLOAD_MAX_RETRIES; $attempt++) {
+        return [
+            'body' => $disk->get($article->featured_image_path),
+            'mime' => $this->mimeTypeFor($filename),
+            'filename' => $filename,
+        ];
+    }
+
+    /**
+     * GELOMBANG PARALEL pertama: resolusi author, upload gambar, dan pencarian
+     * term kategori/tag dijalankan BERSAMAAN lewat satu Http::pool (berbagi satu
+     * CurlMultiHandler → koneksi di-reuse + satu TLS handshake). Hasil kegagalan
+     * satu request tidak menggagalkan yang lain (berupa Throwable di array hasil).
+     *
+     * @param  array{cache: bool, id: int|null, key: string, username: string, email: string}|null  $authorSearch
+     * @param  array<string, array{cache: bool, id: int|null, key: string}>  $categoryLookups
+     * @param  array<string, array{cache: bool, id: int|null, key: string}>  $tagLookups
+     * @param  array{body: string, mime: string, filename: string}|null  $imagePlan
+     * @return array<string, Response|\Throwable>
+     */
+    private function runFirstWave(
+        WPSite $site,
+        ?array $authorSearch,
+        array $categoryLookups,
+        array $tagLookups,
+        ?array $imagePlan,
+    ): array {
+        return Http::pool(function (Pool $pool) use ($site, $authorSearch, $categoryLookups, $tagLookups, $imagePlan): array {
+            $requests = [];
+
+            if ($authorSearch && ! $authorSearch['cache']) {
+                if ($authorSearch['username'] !== '') {
+                    $requests[] = $this->poolRequest($pool, 'author_username', $site, 10)
+                        ->get('/users', ['search' => $authorSearch['username'], 'per_page' => 20]);
+                }
+
+                if ($authorSearch['email'] !== '') {
+                    $requests[] = $this->poolRequest($pool, 'author_email', $site, 10)
+                        ->get('/users', ['search' => $authorSearch['email'], 'per_page' => 20]);
+                }
+            }
+
+            if ($imagePlan) {
+                $requests[] = $this->poolRequest($pool, 'image', $site, 120)
+                    ->withBody($imagePlan['body'], $imagePlan['mime'])
+                    ->withHeaders(['Content-Disposition' => 'attachment; filename="'.$imagePlan['filename'].'"'])
+                    ->post('/media');
+            }
+
+            foreach ($categoryLookups as $name => $plan) {
+                if (! $plan['cache']) {
+                    $requests[] = $this->poolRequest($pool, 'categories:'.$name, $site, 15)
+                        ->get('/categories', ['search' => $name, 'per_page' => 1]);
+                }
+            }
+
+            foreach ($tagLookups as $name => $plan) {
+                if (! $plan['cache']) {
+                    $requests[] = $this->poolRequest($pool, 'tags:'.$name, $site, 15)
+                        ->get('/tags', ['search' => $name, 'per_page' => 1]);
+                }
+            }
+
+            return $requests;
+        }, 20);
+    }
+
+    /**
+     * PendingRequest async untuk pool — selalu fresh per key (pending request
+     * bersifat mutable & persisten; memakai objek bersama menodai state body
+     * untuk request lain).
+     */
+    private function poolRequest(Pool $pool, string $key, WPSite $site, int $timeout = 30): PendingRequest
+    {
+        return $pool->as($key)
+            ->baseUrl(rtrim($site->site_url, '/').'/wp-json/wp/v2')
+            ->withBasicAuth($site->wp_username, $site->appPassword())
+            ->acceptJson()
+            ->withHeaders(['User-Agent' => self::USER_AGENT])
+            ->timeout($timeout);
+    }
+
+    /**
+     * Resolusi author dari hasil wave paralel. Nilai positif (atau null bila
+     * lookup menyatakan tidak ditemukan) di-cache 7 hari — atribut 'author'
+     * di-omit pada payload bila null sehingga WP memakai akun default/admin.
+     *
+     * @param  array{cache: bool, id: int|null, key: string, username: string, email: string}|null  $authorSearch
+     * @param  array<string, Response|\Throwable>  $responses
+     */
+    private function resolveAuthorFromWave(WPSite $site, ?array $authorSearch, array $responses): ?int
+    {
+        if ($authorSearch === null) {
+            return null;
+        }
+
+        if ($authorSearch['cache']) {
+            Log::info('[WPPublish] Author from cache', [
+                'author_username' => $authorSearch['username'],
+                'site' => $site->site_name,
+                'author_id' => $authorSearch['id'],
+            ]);
+
+            return $authorSearch['id'];
+        }
+
+        $candidates = [];
+
+        foreach (['author_username', 'author_email'] as $responseKey) {
+            $response = $responses[$responseKey] ?? null;
+
+            if ($response instanceof \Throwable || $response === null || ! $response->successful()) {
+                continue;
+            }
+
+            $candidates = array_merge($candidates, $response->json() ?? []);
+        }
+
+        $authorId = $this->matchAuthorCandidate($authorSearch['username'], $authorSearch['email'], $candidates);
+
+        if ($authorId !== null) {
+            Cache::put($authorSearch['key'], $authorId, now()->addDays(7));
+
+            Log::info("[WPPublish] Author resolved: '{$authorSearch['username']}' on '{$site->site_name}' => ID {$authorId}");
+        } else {
+            Log::info("WP Author '{$authorSearch['username']}' tidak ditemukan di '{$site->site_name}' — memakai author default WordPress.");
+        }
+
+        return $authorId;
+    }
+
+    /**
+     * Exact match username/slug/email terhadap daftar user WP (padanan logika
+     * WpAuthorResolverService).
+     *
+     * @param  array<int, array<string, mixed>>  $candidates
+     */
+    private function matchAuthorCandidate(string $username, string $email, array $candidates): ?int
+    {
+        foreach ($candidates as $user) {
+            $matched = ($username !== '' && strtolower((string) ($user['username'] ?? '')) === $username)
+                || ($username !== '' && strtolower((string) ($user['slug'] ?? '')) === $username)
+                || ($email !== '' && strtolower((string) ($user['email'] ?? '')) === $email);
+
+            if ($matched && isset($user['id'])) {
+                return (int) $user['id'];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Ambil media_id dari hasil wave; bila gagal dengan status yang LAYAK di-retry
+     * (5xx/timeout/429), lakukan beberapa percobaan tambahan tanpa blocking sleep
+     * panjang. Kegagalan total mengembalikan null — artikel tetap dipublikasikan
+     * tanpa gambar unggulan (tidak mematikan alur publish).
+     *
+     * @param  array{body: string, mime: string, filename: string}|null  $imagePlan
+     * @param  array<string, Response|\Throwable>  $responses
+     */
+    private function resolveImageFromWave(WPSite $site, Article $article, ?array $imagePlan, array $responses): ?int
+    {
+        if ($imagePlan === null) {
+            return null;
+        }
+
+        $response = $responses['image'] ?? null;
+
+        if ($response instanceof \Throwable || $response === null || ! $response->successful()) {
+            return $this->retryImageUpload($site, $article, $imagePlan, $response);
+        }
+
+        $mediaId = (int) ($response->json('id') ?? 0);
+
+        if ($mediaId > 0) {
+            Log::info('[WPPublish] Image upload ok', [
+                'article_id' => $article->id,
+                'media_id' => $mediaId,
+                'http_status' => $response->status(),
+            ]);
+
+            return $mediaId;
+        }
+
+        return $this->retryImageUpload($site, $article, $imagePlan, $response);
+    }
+
+    /**
+     * @param  array{body: string, mime: string, filename: string}  $imagePlan
+     * @param  Response|\Throwable|null  $firstResponse
+     */
+    private function retryImageUpload(WPSite $site, Article $article, array $imagePlan, $firstResponse): ?int
+    {
+        $status = $firstResponse instanceof Response ? $firstResponse->status() : null;
+
+        $retryable = $status === null || in_array($status, [408, 425, 429, 500, 502, 503, 504], true);
+
+        if (! $retryable) {
+            Log::warning('Upload gambar WP tidak di-retry (non-retryable HTTP '.($status ?? 'n/a').').', [
+                'article_id' => $article->id,
+            ]);
+
+            return null;
+        }
+
+        for ($attempt = 1; $attempt <= 2; $attempt++) {
+            // Backoff singkat & tidak memblokir worker lama (300ms, 600ms — bukan 2/4/8s).
+            usleep(300_000 * $attempt);
+
             try {
-                // Client FRESH per percobaan: PendingRequest bersifat mutable &
-                // persisten, jadi memakai objek bersama akan menodai state
-                // (bodyFormat='body', Content-Type, Content-Disposition) untuk
-                // request lain. Client baru menjamin request artikel tetap bersih.
+                // Client FRESH per percobaan: PendingRequest mutable & persisten.
                 $response = $this->client($site)
                     ->timeout(120)
-                    ->withBody($disk->get($article->featured_image_path), $this->mimeTypeFor($filename))
-                    ->withHeaders(['Content-Disposition' => 'attachment; filename="'.$filename.'"'])
+                    ->withBody($imagePlan['body'], $imagePlan['mime'])
+                    ->withHeaders(['Content-Disposition' => 'attachment; filename="'.$imagePlan['filename'].'"'])
                     ->post('/media');
 
                 $response->throw();
 
-                Log::info('[WPPublish] Image upload ok', [
-                    'article_id' => $article->id,
-                    'media_id' => $response->json('id'),
-                    'http_status' => $response->status(),
-                ]);
+                $mediaId = (int) ($response->json('id') ?? 0);
 
-                return (int) ($response->json('id') ?? 0);
+                if ($mediaId > 0) {
+                    Log::info('[WPPublish] Image upload ok (retry)', [
+                        'article_id' => $article->id,
+                        'attempt' => $attempt,
+                        'media_id' => $mediaId,
+                    ]);
+
+                    return $mediaId;
+                }
             } catch (\Throwable $e) {
-                $httpStatus = isset($e->response) ? $e->response->status() : null;
-                $bodyPreview = isset($e->response) ? mb_substr($e->response->body(), 0, 500) : null;
-                $bodyTail = isset($e->response) ? mb_substr($e->response->body(), -500) : null;
-                $responseHeaders = isset($e->response) ? $e->response->headers() : [];
-
-                $wafHints = array_intersect_key($responseHeaders, array_flip([
-                    'server', 'via', 'x-powered-by', 'x-sucuri-id', 'x-sucuri-cache',
-                    'cf-ray', 'x-cdn', 'x-wf', 'x-wf-wall', 'x-litespeed-cache',
-                    'x-cache', 'x-cache-hits', 'x-qm', 'x-hostinger', 'x-cloudee',
-                    'x-cdn-rule-id', 'x-kinsta-cache', 'x-nginx-proxy', 'x-hw',
-                    'set-cookie',
-                ]));
-
-                Log::warning('Upload gambar WP gagal', [
+                Log::warning('Retry upload gambar WP gagal', [
                     'article_id' => $article->id,
                     'attempt' => $attempt,
-                    'max_retries' => self::UPLOAD_MAX_RETRIES,
                     'exception' => get_class($e),
                     'message' => $e->getMessage(),
-                    'http_status' => $httpStatus,
-                    'body_head' => $bodyPreview,
-                    'body_tail' => $bodyTail,
-                    'response_headers' => $wafHints,
                 ]);
-
-                if ($attempt === self::UPLOAD_MAX_RETRIES) {
-                    return null;
-                }
-
-                sleep(2 ** $attempt); // backoff: 2s, 4s, 8s (2^1, 2^2, 2^3)
             }
         }
 
@@ -285,49 +567,98 @@ class WordPressPublisherService
     }
 
     /**
-     * Petakan nama term (kategori/tag) ke ID pada situs target: cari dulu, buat bila belum ada.
+     * Petakan nama term ke ID dari hasil wave paralel; term yang belum ada
+     * (atau gagal ter-cocokkan) dikembalikan sebagai daftar "to-create" yang
+     * dibuat lewat POST setelahnya. Hasil positif di-cache 7 hari.
      *
-     * @param  array<int, string>  $names
-     * @return array<int, int>
+     * @param  array<string, array{cache: bool, id: int|null, key: string}>  $lookups
+     * @param  array<string, Response|\Throwable>  $responses
+     * @return array{0: array<int, int>, 1: array<int, string>}
      */
-    private function resolveTerms(PendingRequest $client, string $taxonomy, array $names): array
+    private function resolveTermsFromWave(WPSite $site, string $taxonomy, array $lookups, array $responses): array
     {
         $ids = [];
+        $toCreate = [];
 
-        foreach (array_filter($names) as $name) {
-            try {
-                $search = $client->get("/{$taxonomy}", ['search' => $name, 'per_page' => 1]);
-                $existing = collect($search->json())->firstWhere('name', $name)['id'] ?? null;
+        foreach ($lookups as $name => $plan) {
+            if ($plan['cache']) {
+                if ($plan['id'] !== null) {
+                    $ids[] = $plan['id'];
+                }
+
+                continue;
+            }
+
+            $response = $responses[$taxonomy.':'.$name] ?? null;
+
+            if ($response instanceof \Throwable) {
+                Log::warning('[WPPublish] Term lookup failed', [
+                    'taxonomy' => $taxonomy,
+                    'name' => $name,
+                    'exception' => get_class($response),
+                    'message' => $response->getMessage(),
+                ]);
+
+                // Abaikan kegagalan lookup satu term — tidak menggagalkan publikasi.
+                continue;
+            }
+
+            if ($response && $response->successful()) {
+                $existing = collect($response->json())->firstWhere('name', $name)['id'] ?? null;
 
                 if ($existing) {
                     $ids[] = (int) $existing;
+                    $this->cacheTermId($site->id, $taxonomy, $name, (int) $existing);
 
                     Log::info('[WPPublish] Term found', ['taxonomy' => $taxonomy, 'name' => $name, 'id' => $existing]);
 
                     continue;
                 }
-
-                $created = $client->post("/{$taxonomy}", ['name' => $name]);
-
-                if ($created->successful()) {
-                    $ids[] = (int) $created->json('id');
-
-                    Log::info('[WPPublish] Term created', ['taxonomy' => $taxonomy, 'name' => $name, 'id' => $created->json('id')]);
-                }
-            } catch (\Throwable $e) {
-                Log::warning('[WPPublish] Term resolve failed', [
-                    'taxonomy' => $taxonomy,
-                    'name' => $name,
-                    'exception' => get_class($e),
-                    'message' => $e->getMessage(),
-                ]);
-
-                // Abaikan kegagalan satu term agar tidak menggagalkan seluruh publikasi.
-                continue;
             }
+
+            // Pencarian tidak menemukan term → perlu dibuat via POST.
+            $toCreate[] = $name;
         }
 
-        return array_values(array_unique($ids));
+        return [array_values(array_unique($ids)), array_values(array_unique($toCreate))];
+    }
+
+    private function cacheTermId(int $siteId, string $taxonomy, string $name, int $id): void
+    {
+        Cache::put("wp_term_id_site_{$siteId}_{$taxonomy}_".mb_strtolower($name), $id, now()->addDays(7));
+    }
+
+    /**
+     * Buat term kategori/tag di situs target. Kegagalan (HTTP error atau
+     * exception) hanya dicatat log dan mengembalikan null — tidak menggagalkan
+     * seluruh publikasi.
+     */
+    private function createTerm(PendingRequest $client, string $taxonomy, string $name): ?int
+    {
+        try {
+            $created = $client->post("/{$taxonomy}", ['name' => $name]);
+
+            if ($created->successful()) {
+                Log::info('[WPPublish] Term created', ['taxonomy' => $taxonomy, 'name' => $name, 'id' => $created->json('id')]);
+
+                return (int) $created->json('id');
+            }
+
+            Log::warning('[WPPublish] Term create failed', [
+                'taxonomy' => $taxonomy,
+                'name' => $name,
+                'http_status' => $created->status(),
+            ]);
+        } catch (\Throwable $e) {
+            Log::warning('[WPPublish] Term create exception', [
+                'taxonomy' => $taxonomy,
+                'name' => $name,
+                'exception' => get_class($e),
+                'message' => $e->getMessage(),
+            ]);
+        }
+
+        return null;
     }
 
     /**
@@ -403,24 +734,6 @@ class WordPressPublisherService
 
             return 'Meta Yoast gagal disinkronkan (artikel utama tetap berhasil). '.$e->getMessage();
         }
-    }
-
-    /**
-     * Task 2: resolusi WP User ID untuk author artikel.
-     * Meneruskan ke WpAuthorResolverService yang melakukan exact match username/slug/email;
-     * mengembalikan null bila tidak ditemukan atau request error (fallback author default WP).
-     */
-    public function resolveWordPressAuthorId(WPSite $site, ?User $author): ?int
-    {
-        if ($author === null || trim((string) $author->username) === '') {
-            return null;
-        }
-
-        return $this->authorResolver->resolveAuthorId(
-            $site,
-            (string) $author->username,
-            (string) ($author->email ?? ''),
-        );
     }
 
     /**
