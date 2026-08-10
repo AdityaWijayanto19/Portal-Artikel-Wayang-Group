@@ -4,7 +4,9 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ $title ?? 'Wayang Group Dashboard' }}</title>
+    <title>
+        @yield('title', 'Dashboard') - {{ $activeCompany?->name ?? 'Wayang Group' }}
+    </title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <script defer src="https://unpkg.com/@alpinejs/collapse@3.x.x/dist/cdn.min.js"></script>
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
@@ -14,8 +16,8 @@
     @php
         use App\Helpers\ColorHelper;
 
-        $brandPrimary     = ColorHelper::normalizeHex($activeCompany?->primary_color, ColorHelper::DEFAULT_PRIMARY);
-        $brandSidebar     = ColorHelper::normalizeHex($activeCompany?->sidebar_color, ColorHelper::DEFAULT_SIDEBAR);
+        $brandPrimary = ColorHelper::normalizeHex($activeCompany?->primary_color, ColorHelper::DEFAULT_PRIMARY);
+        $brandSidebar = ColorHelper::normalizeHex($activeCompany?->sidebar_color, ColorHelper::DEFAULT_SIDEBAR);
         $brandPrimaryText = ColorHelper::getContrastTextColor($brandPrimary);
         $brandSidebarText = ColorHelper::getContrastTextColor($brandSidebar);
     @endphp
@@ -33,7 +35,8 @@
 
     <div class="h-screen flex overflow-hidden">
 
-        <aside class="w-64 bg-brand-sidebar shrink-0 h-full border-r border-brand-border hidden lg:block overflow-y-auto">
+        <aside
+            class="w-64 bg-brand-sidebar shrink-0 h-full border-r border-brand-border hidden lg:block overflow-y-auto">
             @include('partials.navigation')
         </aside>
 

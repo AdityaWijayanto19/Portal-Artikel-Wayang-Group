@@ -13,6 +13,9 @@
 @endsection
 
 @section('content')
+    @php
+        use App\Helpers\ColorHelper;
+    @endphp
     <div class="space-y-6">
 
         <x-table :headers="[
@@ -33,12 +36,17 @@
 
             {{-- Table Body Rows --}}
             @forelse($users as $user)
+                @php
+                    $userCompany = $user->company;
+                    $avatarText = ltrim(ColorHelper::normalizeHex($userCompany?->primary_color, ColorHelper::DEFAULT_PRIMARY), '#');
+                    $avatarBg = ltrim(ColorHelper::normalizeHex($userCompany?->sidebar_color, ColorHelper::DEFAULT_SIDEBAR), '#');
+                @endphp
                 <tr class="hover:bg-slate-50/60 transition">
                     <!-- Pengguna Avatar & Detail -->
                     <td class="px-6 py-4 font-medium text-slate-900 flex items-center gap-3">
                         <div
                             class="w-10 h-10 rounded-xl border border-slate-200/60 bg-slate-50 flex items-center justify-center shrink-0 overflow-hidden">
-                            <img src="https://ui-avatars.com/api/?name={{ urlencode($user->name) }}&color=C59B27&background=2A2A2A"
+                            <img src="https://ui-avatars.com/api/?name={{ urlencode($user->name) }}&color={{ $avatarText }}&background={{ $avatarBg }}"
                                 alt="{{ $user->name }}" class="w-full h-full object-cover">
                         </div>
                         <div>

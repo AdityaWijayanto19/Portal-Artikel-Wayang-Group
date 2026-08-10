@@ -1,12 +1,10 @@
 @php
     use Illuminate\Support\Facades\Storage;
+    use App\Helpers\ColorHelper;
 
     $currentUser = $currentUser ?? auth()->user();
     $userRole = str_replace('_', ' ', $currentUser->roles->first()?->name ?? 'admin pic');
     $userName = $currentUser->name ?? 'Yunnappie';
-    $userAvatar =
-        $currentUser->profile_photo_url ??
-        'https://ui-avatars.com/api/?name=' . urlencode($userName) . '&color=C59B27&background=2A2A2A';
 
     // Perbaikan: Pastikan $globalCompanies selalu ada
     $companiesList = $globalCompanies ?? collect();
@@ -38,6 +36,14 @@
     } else {
         $displayCompanyLogo = asset('images/logo.png');
     }
+
+    // Warna avatar fallback mengikuti branding perusahaan aktif (ui-avatars butuh hex tanpa '#')
+    $avatarTextColor = ltrim(ColorHelper::normalizeHex($activeCompany?->primary_color, ColorHelper::DEFAULT_PRIMARY), '#');
+    $avatarBgColor = ltrim(ColorHelper::normalizeHex($activeCompany?->sidebar_color, ColorHelper::DEFAULT_SIDEBAR), '#');
+
+    $userAvatar =
+        $currentUser->profile_photo_url ??
+        'https://ui-avatars.com/api/?name=' . urlencode($userName) . '&color=' . $avatarTextColor . '&background=' . $avatarBgColor;
 @endphp
 
 <header
