@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 
 class TenantController extends Controller
 {
+
     /**
      * Memproses pergantian perusahaan (Tenant Switching).
      */

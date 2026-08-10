@@ -7,15 +7,21 @@ use App\Http\Requests\WpSite\UpdateWpSiteRequest;
 use App\Models\Category;
 use App\Models\Company;
 use App\Models\WPSite;
+use App\Services\ActivityLogger;
 use App\Services\WpSiteService;
+use App\Support\ActivityAction;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 
 class WpSiteController extends Controller
 {
-    public function __construct(private readonly WpSiteService $wpSiteService) {}
+    public function __construct(
+        private readonly WpSiteService $wpSiteService,
+        private readonly ActivityLogger $activityLogger,
+    ) {}
 
     public function index(Request $request): View
     {
@@ -47,10 +53,18 @@ class WpSiteController extends Controller
     public function store(StoreWpSiteRequest $request): RedirectResponse
     {
         try {
-            $this->wpSiteService->create($request->validated());
+            $wpSite = $this->wpSiteService->create($request->validated());
+
+            $this->activityLogger->log(
+                ActivityAction::WP_SITE_CREATED,
+                "Menambahkan WP Site \"{$wpSite->site_name}\".",
+                subject: $wpSite,
+            );
+
             return redirect()->route('wp-sites.index')->with('success', 'WP Site berhasil ditambahkan.');
         } catch (\Throwable $th) {
-            Log::error('Gagal menambahkan WP Site: ' . $th->getMessage());
+            Log::error('Gagal menambahkan WP Site: '.$th->getMessage());
+
             return back()
                 ->with('error', 'Terjadi kesalahan sistem. Gagal menambahkan WP Site.')
                 ->withInput();
@@ -72,11 +86,19 @@ class WpSiteController extends Controller
     public function update(UpdateWpSiteRequest $request, WPSite $wpSite): RedirectResponse
     {
         try {
-            $this->wpSiteService->update($wpSite, $request->validated());
+            $wpSite = $this->wpSiteService->update($wpSite, $request->validated());
+
+            $this->activityLogger->log(
+                ActivityAction::WP_SITE_UPDATED,
+                "Memperbarui WP Site \"{$wpSite->site_name}\".",
+                subject: $wpSite,
+            );
+
             return redirect()->route('wp-sites.index')->with('success', 'WP Site berhasil diperbarui.');
 
         } catch (\Throwable $th) {
-            Log::error('Gagal memperbarui Wp Site: ' . $th->getMessage());
+            Log::error('Gagal memperbarui Wp Site: '.$th->getMessage());
+
             return back()
                 ->with('error', 'Terjadi kesalahan sistem. Gagal memperbarui Wp Site.')
                 ->withInput();
@@ -86,18 +108,27 @@ class WpSiteController extends Controller
     public function destroy(WPSite $wpSite): RedirectResponse
     {
         try {
+            $siteName = $wpSite->site_name;
             $this->wpSiteService->delete($wpSite);
+
+            $this->activityLogger->log(
+                ActivityAction::WP_SITE_DELETED,
+                "Menghapus WP Site \"{$siteName}\".",
+                subject: $wpSite,
+            );
+
             return redirect()->route('wp-sites.index')->with('success', 'WP Site berhasil dihapus.');
 
         } catch (\Throwable $th) {
-            Log::error('Gagal menghapus Wp Site: ' . $th->getMessage());
+            Log::error('Gagal menghapus Wp Site: '.$th->getMessage());
+
             return back()
                 ->with('error', 'Terjadi kesalahan sistem. Gagal menghapus Wp Site.')
                 ->withInput();
         }
     }
 
-    protected function resolveCategoriesForCurrentUser(?int $companyId = null): \Illuminate\Support\Collection
+    protected function resolveCategoriesForCurrentUser(?int $companyId = null): Collection
     {
         $user = auth()->user();
 

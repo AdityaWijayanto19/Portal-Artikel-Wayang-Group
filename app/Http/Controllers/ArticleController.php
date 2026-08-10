@@ -12,7 +12,9 @@ use App\Models\Scopes\TenantScope;
 use App\Models\Tag;
 use App\Models\User;
 use App\Models\WPSite;
+use App\Services\ActivityLogger;
 use App\Services\ArticleService;
+use App\Support\ActivityAction;
 use App\Support\ArticleContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -23,7 +25,10 @@ use Illuminate\View\View;
 
 class ArticleController extends Controller
 {
-    public function __construct(private readonly ArticleService $articleService) {}
+    public function __construct(
+        private readonly ArticleService $articleService,
+        private readonly ActivityLogger $activityLogger,
+    ) {}
 
     public function index(Request $request): View
     {
@@ -188,6 +193,12 @@ class ArticleController extends Controller
             if ($request->string('action')->toString() === 'publish') {
                 $this->articleService->publish($article);
 
+                $this->activityLogger->log(
+                    ActivityAction::ARTICLE_CREATED,
+                    "Membuat artikel \"{$article->title}\".",
+                    subject: $article,
+                );
+
                 Log::info('[Article] store+publish selesai', [
                     'article_id' => $article->id,
                     'has_image' => $request->hasFile('featured_image'),
@@ -198,6 +209,12 @@ class ArticleController extends Controller
 
                 return redirect()->route('articles.index')->with('success', 'Artikel masuk antrean publish.');
             }
+
+            $this->activityLogger->log(
+                ActivityAction::ARTICLE_CREATED,
+                "Membuat draft artikel \"{$article->title}\".",
+                subject: $article,
+            );
 
             Log::info('[Article] store draft selesai', [
                 'article_id' => $article->id,
@@ -227,6 +244,12 @@ class ArticleController extends Controller
             if ($request->string('action')->toString() === 'publish') {
                 $this->articleService->publish($article);
 
+                $this->activityLogger->log(
+                    ActivityAction::ARTICLE_UPDATED,
+                    "Memperbarui artikel \"{$article->title}\".",
+                    subject: $article,
+                );
+
                 Log::info('[Article] update+publish selesai', [
                     'article_id' => $article->id,
                     'has_image' => $request->hasFile('featured_image'),
@@ -236,6 +259,12 @@ class ArticleController extends Controller
 
                 return redirect()->route('articles.index')->with('success', 'Artikel diperbarui & masuk antrean publish.');
             }
+
+            $this->activityLogger->log(
+                ActivityAction::ARTICLE_UPDATED,
+                "Memperbarui draft artikel \"{$article->title}\".",
+                subject: $article,
+            );
 
             Log::info('[Article] update draft selesai', [
                 'article_id' => $article->id,
@@ -287,7 +316,14 @@ class ArticleController extends Controller
     public function destroy(Article $article): RedirectResponse
     {
         try {
+            $articleTitle = $article->title;
             $this->articleService->delete($article);
+
+            $this->activityLogger->log(
+                ActivityAction::ARTICLE_DELETED,
+                "Menghapus artikel \"{$articleTitle}\" beserta post-nya dari WordPress.",
+                subject: $article,
+            );
 
             return redirect()->route('articles.index')
                 ->with('success', 'Artikel berhasil dihapus beserta post-nya dari situs WordPress target.');
@@ -311,9 +347,17 @@ class ArticleController extends Controller
                 ->with('wpSite')
                 ->firstOrFail();
 
+            $siteName = $publication->wpSite->site_name ?? '#'.$wpSite;
             $this->articleService->deleteSitePublication($article, $publication);
 
-            return back()->with('success', 'Publikasi dihapus dari situs "'.($publication->wpSite->site_name ?? '#'.$wpSite).'".');
+            $this->activityLogger->log(
+                ActivityAction::ARTICLE_SITE_REMOVED,
+                "Menghapus publikasi artikel \"{$article->title}\" dari situs \"{$siteName}\".",
+                subject: $article,
+                properties: ['wp_site_id' => $wpSite],
+            );
+
+            return back()->with('success', 'Publikasi dihapus dari situs "'.$siteName.'".');
         } catch (\Throwable $th) {
             Log::error('Gagal hapus publikasi situs: '.$th->getMessage());
 

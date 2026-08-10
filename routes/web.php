@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\ArticleController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\CategoryController;
@@ -9,6 +10,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\TenantController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\WpSiteController;
+use App\Http\Controllers\WpSyncLogController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -44,6 +46,10 @@ Route::middleware('auth')->group(function () {
         Route::resource('users', UserController::class);
         Route::resource('categories', CategoryController::class);
         Route::resource('wp-sites', WpSiteController::class);
+
+        // Log Aktivitas & Riwayat Sinkronisasi WordPress (Super Admin: semua, Admin: perusahaannya).
+        Route::get('/activity-logs', [ActivityLogController::class, 'index'])->name('activity-logs.index');
+        Route::get('/wp-sync-logs', [WpSyncLogController::class, 'index'])->name('wp-sync-logs.index');
     });
 
     // Protected Routes berdasarkan Spatie Roles

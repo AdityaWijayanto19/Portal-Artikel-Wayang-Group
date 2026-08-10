@@ -6,7 +6,9 @@ use App\Http\Requests\User\StoreUserRequest;
 use App\Http\Requests\User\UpdateUserRequest;
 use App\Models\Company;
 use App\Models\User;
+use App\Services\ActivityLogger;
 use App\Services\UserService;
+use App\Support\ActivityAction;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -18,9 +20,12 @@ class UserController extends Controller
 {
     protected UserService $userService;
 
-    public function __construct(UserService $userService)
+    protected ActivityLogger $activityLogger;
+
+    public function __construct(UserService $userService, ActivityLogger $activityLogger)
     {
         $this->userService = $userService;
+        $this->activityLogger = $activityLogger;
     }
 
     public function index(Request $request): View
@@ -110,9 +115,16 @@ class UserController extends Controller
                 $user->companies()->sync([$companyId]);
             }
 
+            $this->activityLogger->log(
+                ActivityAction::USER_CREATED,
+                "Menambahkan pengguna \"{$user->name}\" (role: {$role}).",
+                subject: $user,
+            );
+
             return redirect()->route('users.index')->with('success', 'Pengguna berhasil ditambahkan.');
         } catch (\Throwable $th) {
-            Log::error('Gagal menambahkan pengguna: ' . $th->getMessage());
+            Log::error('Gagal menambahkan pengguna: '.$th->getMessage());
+
             return back()
                 ->with('error', 'Terjadi kesalahan sistem. Gagal menambahkan pengguna.')
                 ->withInput();
@@ -138,9 +150,16 @@ class UserController extends Controller
 
             $this->userService->updateUser($user, $request->validated(), $targetCompanyId, $role);
 
+            $this->activityLogger->log(
+                ActivityAction::USER_UPDATED,
+                "Memperbarui data pengguna \"{$user->name}\".",
+                subject: $user,
+            );
+
             return redirect()->route('users.index')->with('success', 'Data user berhasil diperbarui.');
         } catch (\Throwable $th) {
-            Log::error('Gagal memperbarui pengguna: ' . $th->getMessage());
+            Log::error('Gagal memperbarui pengguna: '.$th->getMessage());
+
             return back()
                 ->with('error', 'Terjadi kesalahan sistem. Gagal memperbarui pengguna.')
                 ->withInput();
@@ -160,11 +179,19 @@ class UserController extends Controller
                 abort(403, 'Anda tidak memiliki akses untuk menghapus user ini.');
             }
 
+            $userName = $user->name;
             $user->delete();
+
+            $this->activityLogger->log(
+                ActivityAction::USER_DELETED,
+                "Menghapus pengguna \"{$userName}\".",
+                subject: $user,
+            );
 
             return redirect()->route('users.index')->with('success', 'User berhasil dihapus.');
         } catch (\Throwable $th) {
-            Log::error('Gagal menghapus pengguna: ' . $th->getMessage());
+            Log::error('Gagal menghapus pengguna: '.$th->getMessage());
+
             return back()
                 ->with('error', 'Terjadi kesalahan sistem. Gagal menghapus pengguna.')
                 ->withInput();

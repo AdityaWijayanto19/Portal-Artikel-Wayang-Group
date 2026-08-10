@@ -6,7 +6,9 @@ use App\Http\Requests\Category\StoreCategoryRequest;
 use App\Http\Requests\Category\UpdateCategoryRequest;
 use App\Models\Category;
 use App\Models\Company;
+use App\Services\ActivityLogger;
 use App\Services\CategoryService;
+use App\Support\ActivityAction;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -14,7 +16,10 @@ use Illuminate\View\View;
 
 class CategoryController extends Controller
 {
-    public function __construct(private readonly CategoryService $categoryService) {}
+    public function __construct(
+        private readonly CategoryService $categoryService,
+        private readonly ActivityLogger $activityLogger,
+    ) {}
 
     public function index(Request $request): View
     {
@@ -51,12 +56,20 @@ class CategoryController extends Controller
     public function store(StoreCategoryRequest $request): RedirectResponse
     {
         try {
-            $this->categoryService->create($request->validated());
+            $category = $this->categoryService->create($request->validated());
+
+            $this->activityLogger->log(
+                ActivityAction::CATEGORY_CREATED,
+                "Menambahkan kategori \"{$category->name}\".",
+                subject: $category,
+            );
+
             return redirect()
                 ->route('categories.index')
                 ->with('success', 'Kategori berhasil ditambahkan.');
         } catch (\Throwable $th) {
-            Log::error('Gagal menambahkan kategori: ' . $th->getMessage());
+            Log::error('Gagal menambahkan kategori: '.$th->getMessage());
+
             return back()
                 ->with('error', 'Terjadi kesalahan sistem. Gagal menambahkan kategori.')
                 ->withInput();
@@ -73,12 +86,20 @@ class CategoryController extends Controller
     public function update(UpdateCategoryRequest $request, Category $category): RedirectResponse
     {
         try {
-            $this->categoryService->update($category, $request->validated());
+            $category = $this->categoryService->update($category, $request->validated());
+
+            $this->activityLogger->log(
+                ActivityAction::CATEGORY_UPDATED,
+                "Memperbarui kategori \"{$category->name}\".",
+                subject: $category,
+            );
+
             return redirect()
                 ->route('categories.index')
                 ->with('success', 'Kategori berhasil diperbarui.');
         } catch (\Throwable $th) {
-            Log::error('Gagal memperbarui kategori: ' . $th->getMessage());
+            Log::error('Gagal memperbarui kategori: '.$th->getMessage());
+
             return back()
                 ->with('error', 'Terjadi kesalahan sistem. Gagal memperbarui kategori.')
                 ->withInput();
@@ -88,11 +109,19 @@ class CategoryController extends Controller
     public function destroy(Category $category): RedirectResponse
     {
         try {
+            $categoryName = $category->name;
             $this->categoryService->delete($category);
+
+            $this->activityLogger->log(
+                ActivityAction::CATEGORY_DELETED,
+                "Menghapus kategori \"{$categoryName}\".",
+                subject: $category,
+            );
 
             return redirect()->route('categories.index')->with('success', 'Kategori berhasil dihapus.');
         } catch (\Throwable $th) {
-            Log::error('Gagal menghapus kategori: ' . $th->getMessage());
+            Log::error('Gagal menghapus kategori: '.$th->getMessage());
+
             return back()
                 ->with('error', 'Terjadi kesalahan sistem. Gagal menghapus kategori.')
                 ->withInput();

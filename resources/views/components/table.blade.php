@@ -101,6 +101,13 @@
                         </div>
                     @endif
                 </form>
+            @elseif(isset($filters))
+                {{-- Form filter tanpa pencarian (submit via filter dropdown/date) --}}
+                <form method="GET" class="flex flex-wrap sm:flex-nowrap items-center gap-3 flex-1 max-w-md">
+                    <div class="flex items-center gap-2">
+                        {{ $filters }}
+                    </div>
+                </form>
             @endif
 
             @if($actions)

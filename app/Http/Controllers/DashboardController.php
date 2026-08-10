@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ActivityLog;
 use App\Models\Article;
 use App\Models\ArticleWPLog;
 use App\Models\Category;
 use App\Models\Company;
+use App\Models\Scopes\TenantScope;
 use App\Models\User;
 use App\Models\WPSite;
 use App\Services\SeoAnalyzerService;
@@ -16,8 +18,7 @@ class DashboardController extends Controller
 {
     public function __construct(
         private readonly SeoAnalyzerService $seoAnalyzer,
-    ) {
-    }
+    ) {}
 
     /**
      * Bangun data dashboard berdasarkan role dan tenant aktif.
@@ -55,6 +56,31 @@ class DashboardController extends Controller
         }
 
         $logs = $logsQuery->limit(15)->get();
+
+        // 2b. Log aktivitas pengguna (author tidak melihat aktivitas user sama sekali).
+        $activityLogs = $user->hasRole('author')
+            ? collect()
+            : ActivityLog::query()
+                ->with(['user', 'company'])
+                ->when($activeTenant['id'] !== null, fn ($query) => $query->where('company_id', $activeTenant['id']))
+                ->latest()
+                ->limit(8)
+                ->get();
+
+        // 2c. Tanggal publikasi WP sukses untuk kalender (12 bulan terakhir, ringan & terindeks).
+        $calendarData = ArticleWPLog::query()
+            ->where('status', 'success')
+            ->whereNotNull('synced_at')
+            ->where('synced_at', '>=', now()->subYear())
+            ->when($activeTenant['id'] !== null, function ($query) use ($activeTenant) {
+                $query->whereHas('article', fn ($sub) => $sub->withoutGlobalScope(TenantScope::class)->where('company_id', $activeTenant['id']));
+            })
+            ->when($user->hasRole('author'), function ($query) use ($user) {
+                $query->whereHas('article', fn ($sub) => $sub->withoutGlobalScope(TenantScope::class)->where('user_id', $user->id));
+            })
+            ->selectRaw('DATE(synced_at) as date, COUNT(*) as total')
+            ->groupBy('date')
+            ->pluck('total', 'date');
 
         $selectedCompanyId = $activeTenant['id'] ?? $companyContext['selected_company']?->id;
 
@@ -108,6 +134,8 @@ class DashboardController extends Controller
             'wpSites' => $wpSites,
             'articles' => $articles,
             'logs' => $logs,
+            'activityLogs' => $activityLogs,
+            'calendarData' => $calendarData,
             'metrics' => $metrics,
             'preview' => $preview,
             'activeTenant' => $activeTenant,

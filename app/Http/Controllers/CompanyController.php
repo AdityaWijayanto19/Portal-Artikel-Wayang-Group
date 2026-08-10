@@ -6,7 +6,9 @@ use App\Helpers\ColorHelper;
 use App\Http\Requests\Company\StoreCompanyRequest;
 use App\Http\Requests\Company\UpdateCompanyRequest;
 use App\Models\Company;
+use App\Services\ActivityLogger;
 use App\Services\ImageService;
+use App\Support\ActivityAction;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -17,7 +19,8 @@ class CompanyController extends Controller
 {
     // 2. Inject ImageService via Constructor
     public function __construct(
-        protected ImageService $imageService
+        protected ImageService $imageService,
+        protected ActivityLogger $activityLogger,
     ) {}
 
     /**
@@ -66,12 +69,19 @@ class CompanyController extends Controller
                 );
             }
 
-            Company::create($validated);
+            $company = Company::create($validated);
+
+            $this->activityLogger->log(
+                ActivityAction::COMPANY_CREATED,
+                "Menambahkan perusahaan \"{$company->name}\".",
+                subject: $company,
+            );
 
             return redirect()->route('companies.index')
                 ->with('success', 'Perusahaan baru berhasil ditambahkan.');
         } catch (\Throwable $th) {
-            Log::error('Gagal menambahkan perusahaan: ' . $th->getMessage());
+            Log::error('Gagal menambahkan perusahaan: '.$th->getMessage());
+
             return back()
                 ->with('error', 'Terjadi kesalahan sistem. Gagal menambahkan perusahaan.')
                 ->withInput();
@@ -123,10 +133,17 @@ class CompanyController extends Controller
 
             $company->update($validated);
 
+            $this->activityLogger->log(
+                ActivityAction::COMPANY_UPDATED,
+                "Memperbarui perusahaan \"{$company->name}\".",
+                subject: $company,
+            );
+
             return redirect()->route('companies.index')
                 ->with('success', "Data perusahaan {$company->name} berhasil diperbarui.");
         } catch (\Throwable $th) {
-            Log::error('Gagal memperbarui perusahaan: ' . $th->getMessage());
+            Log::error('Gagal memperbarui perusahaan: '.$th->getMessage());
+
             return back()
                 ->with('error', 'Terjadi kesalahan sistem. Gagal memperbarui perusahaan.')
                 ->withInput();
@@ -146,10 +163,17 @@ class CompanyController extends Controller
             $companyName = $company->name;
             $company->delete();
 
+            $this->activityLogger->log(
+                ActivityAction::COMPANY_DELETED,
+                "Menghapus perusahaan \"{$companyName}\".",
+                subject: $company,
+            );
+
             return redirect()->route('companies.index')
                 ->with('success', "Perusahaan {$companyName} berhasil dihapus.");
         } catch (\Throwable $th) {
-            Log::error('Gagal menghapus perusahaan: ' . $th->getMessage());
+            Log::error('Gagal menghapus perusahaan: '.$th->getMessage());
+
             return back()
                 ->with('error', 'Terjadi kesalahan sistem. Gagal menghapus perusahaan.')
                 ->withInput();

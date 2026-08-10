@@ -8,6 +8,7 @@
     'searchable' => false,
     'theme' => 'light',
     'showError' => true,
+    'autoSubmit' => false,
 ])
 
 @php
@@ -60,6 +61,7 @@
     value: '{{ $selectedValue }}',
     options: {{ json_encode($formattedOptions) }},
     highlightedIndex: 0,
+    autoSubmit: {{ $autoSubmit ? 'true' : 'false' }},
 
     get selectedLabel() {
         let found = this.options.find(opt => String(opt.value) === String(this.value));
@@ -78,15 +80,19 @@
         this.open = false;
         this.search = '';
 
-        this.$nextTick(() => {
-            const input = this.$refs.hiddenInput;
-            if (input) {
-                input.value = val;
-                input.dispatchEvent(new Event('change', { bubbles: true }));
-                input.dispatchEvent(new Event('input', { bubbles: true }));
-            }
-            $dispatch('change', val);
-        });
+    this.$nextTick(() => {
+        const input = this.$refs.hiddenInput;
+        if (input) {
+            input.value = val;
+            input.dispatchEvent(new Event('change', { bubbles: true }));
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+        $dispatch('change', val);
+
+        if (this.autoSubmit) {
+            this.$el.closest('form')?.submit();
+        }
+    });
     },
 
     highlightNext() {
