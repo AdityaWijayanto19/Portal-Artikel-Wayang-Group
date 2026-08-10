@@ -36,15 +36,13 @@
         </x-stat-card>
     </div>
 
-    {{-- 2. MAIN GRID LAYOUT --}}
+    {{-- ROW 1: CALENDAR (2/3) + QUICK ACTION (1/3) --}}
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-        {{-- KOLOM KIRI (2/3 Grid) --}}
-        <div class="lg:col-span-2 space-y-6">
-
-            {{-- KALENDER WIDGET (data real: tanggal publikasi WP sukses) --}}
-            <div x-data="calendarWidget({{ Js::from($calendarData) }})" class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+        {{-- KALENDER WIDGET (data real: tanggal publikasi WP sukses) --}}
+        <div class="lg:col-span-2">
+            <div x-data="calendarWidget({{ Js::from($calendarData) }})" class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm h-full">
+                <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-100">
                     <div class="flex items-center gap-2">
                         <svg class="w-4 h-4 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                         <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Jadwal Content Release</h3>
@@ -84,15 +82,12 @@
                     <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-emerald-500"></span> Ada publikasi WP sukses</span>
                 </div>
             </div>
-
         </div>
 
-        {{-- KOLOM KANAN (1/3 Grid) --}}
-        <div class="space-y-6">
-
-            {{-- AKSI CEPAT (route nyata sesuai role) --}}
-            <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider mb-4 pb-2 border-b border-slate-100">Aksi Cepat</h3>
+        {{-- AKSI CEPAT (route nyata sesuai role) --}}
+        <div class="h-full">
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm h-full">
+                <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider mb-3 pb-2 border-b border-slate-100">Aksi Cepat</h3>
                 <div class="grid grid-cols-2 gap-2">
                     <x-quick-action href="{{ route('articles.create') }}" label="Buat Artikel">
                         <x-slot:icon>
@@ -137,51 +132,55 @@
                     @endhasrole
                 </div>
             </div>
+        </div>
 
-            {{-- AKTIVITAS USER (super admin & admin; author tidak melihat sama sekali) --}}
-            @hasrole('super_admin|admin')
-                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                    <div class="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
-                        <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Aktivitas User</h3>
-                        <a href="{{ route('activity-logs.index') }}" class="text-[10px] text-brand hover:underline font-semibold">Lihat semua</a>
-                    </div>
+    </div>
 
-                    <div class="space-y-3.5 text-xs">
-                        @forelse($activityLogs as $log)
-                            <x-activity-item
-                                :meta="trim(($log->user?->name ?? 'Sistem') . ' · ' . ($log->created_at?->diffForHumans() ?? '-'))">
-                                {{ $log->description }}
-                            </x-activity-item>
-                        @empty
-                            <p class="text-slate-400">Belum ada aktivitas tercatat.</p>
-                        @endforelse
-                    </div>
-                </div>
-            @endhasrole
+    {{-- ROW 2: ACTIVITY (1/2) + WP SYNC (1/2) --}}
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-            {{-- RIWAYAT SINKRONISASI WP (semua role; link "lihat semua" hanya super_admin/admin) --}}
-            <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                <div class="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
-                    <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Riwayat Sinkronisasi WP</h3>
-                    @hasrole('super_admin|admin')
-                        <a href="{{ route('wp-sync-logs.index') }}" class="text-[10px] text-brand hover:underline font-semibold">Lihat semua</a>
-                    @endhasrole
+        {{-- AKTIVITAS USER (super admin & admin; author tidak melihat sama sekali) --}}
+        @hasrole('super_admin|admin')
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm h-full">
+                <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-100">
+                    <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Aktivitas User</h3>
+                    <a href="{{ route('activity-logs.index') }}" class="text-[10px] text-brand hover:underline font-semibold">Lihat semua</a>
                 </div>
 
-                <div class="space-y-3.5 text-xs">
-                    @forelse($logs as $log)
+                <div class="max-h-80 overflow-y-auto pr-1 -mr-1 space-y-2.5 text-xs">
+                    @forelse($activityLogs as $log)
                         <x-activity-item
-                            :dot="$log->status === 'success' ? 'bg-emerald-500' : 'bg-rose-500'"
-                            :meta="($log->status === 'success' ? 'Sukses' : 'Gagal') . ' · ' . ($log->synced_at ?? $log->created_at)?->diffForHumans()">
-                            {{ $log->article?->title ?? '(artikel terhapus)' }}
-                            <span class="text-slate-400 font-normal">&rarr; {{ $log->wpSite?->site_name ?? 'situs terhapus' }}</span>
+                            :meta="trim(($log->user?->name ?? 'Sistem') . ' · ' . ($log->created_at?->diffForHumans() ?? '-'))">
+                            {{ $log->description }}
                         </x-activity-item>
                     @empty
-                        <p class="text-slate-400">Belum ada riwayat sinkronisasi.</p>
+                        <p class="text-slate-400">Belum ada aktivitas tercatat.</p>
                     @endforelse
                 </div>
             </div>
+        @endhasrole
 
+        {{-- RIWAYAT SINKRONISASI WP (semua role; link "lihat semua" hanya super_admin/admin) --}}
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm h-full">
+            <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-100">
+                <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Riwayat Sinkronisasi WP</h3>
+                @hasrole('super_admin|admin')
+                    <a href="{{ route('wp-sync-logs.index') }}" class="text-[10px] text-brand hover:underline font-semibold">Lihat semua</a>
+                @endhasrole
+            </div>
+
+            <div class="max-h-80 overflow-y-auto pr-1 -mr-1 space-y-2.5 text-xs">
+                @forelse($logs as $log)
+                    <x-activity-item
+                        :dot="$log->status === 'success' ? 'bg-emerald-500' : 'bg-rose-500'"
+                        :meta="($log->status === 'success' ? 'Sukses' : 'Gagal') . ' · ' . ($log->synced_at ?? $log->created_at)?->diffForHumans()">
+                        {{ $log->article?->title ?? '(artikel terhapus)' }}
+                        <span class="text-slate-400 font-normal">&rarr; {{ $log->wpSite?->site_name ?? 'situs terhapus' }}</span>
+                    </x-activity-item>
+                @empty
+                    <p class="text-slate-400">Belum ada riwayat sinkronisasi.</p>
+                @endforelse
+            </div>
         </div>
 
     </div>

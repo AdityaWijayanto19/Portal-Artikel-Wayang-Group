@@ -55,7 +55,7 @@ class DashboardController extends Controller
             $logsQuery->whereHas('article', fn ($query) => $query->where('user_id', $user->id));
         }
 
-        $logs = $logsQuery->limit(15)->get();
+        $logs = $logsQuery->limit(8)->get();
 
         // 2b. Log aktivitas pengguna (author tidak melihat aktivitas user sama sekali).
         $activityLogs = $user->hasRole('author')
