@@ -29,8 +29,8 @@
             }
             trix-editor:focus {
                 outline: none;
-                border-color: #C59B27;
-                box-shadow: 0 0 0 1px #C59B27;
+                border-color: var(--color-primary);
+                box-shadow: 0 0 0 1px var(--color-primary);
             }
             trix-toolbar .trix-button-group {
                 border-color: #e2e8f0;
@@ -43,7 +43,7 @@
                 padding: 0.4rem 0.5rem;
             }
             trix-editor h1 { font-size: 1.5rem; font-weight: 700; }
-            trix-editor a { color: #C59B27; text-decoration: underline; }
+            trix-editor a { color: var(--color-primary); text-decoration: underline; }
         </style>
     @endpush
 @endonce

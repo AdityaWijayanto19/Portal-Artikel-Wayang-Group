@@ -86,8 +86,8 @@
 
                     <div class="max-h-56 overflow-y-auto rounded-xl border border-slate-200/80 bg-white p-3 space-y-2">
                         <template x-for="category in filteredCategories" :key="category.id">
-                            <label class="flex items-center gap-3 rounded-lg border border-slate-200/70 px-3 py-2 hover:border-[#C59B27] transition cursor-pointer">
-                                <input type="checkbox" name="category_ids[]" :value="category.id" x-model="selectedCategoryIds" class="rounded border-slate-300 text-[#C59B27] focus:ring-[#C59B27]">
+                            <label class="flex items-center gap-3 rounded-lg border border-slate-200/70 px-3 py-2 hover:border-brand transition cursor-pointer">
+                                <input type="checkbox" name="category_ids[]" :value="category.id" x-model="selectedCategoryIds" class="rounded border-slate-300 text-brand focus:ring-brand">
                                 <span class="text-xs text-slate-700 font-semibold" x-text="category.name"></span>
                             </label>
                         </template>

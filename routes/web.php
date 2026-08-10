@@ -5,6 +5,7 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\TenantController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\WpSiteController;
@@ -30,6 +31,10 @@ Route::middleware('auth')->group(function () {
     Route::resource('users', UserController::class)->except(['create', 'edit', 'show']);
     // Logout
     Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
+
+    // Profile Saya (self-service)
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
 
     Route::middleware(['auth', 'role:super_admin'])->group(function () {
         Route::resource('companies', CompanyController::class);

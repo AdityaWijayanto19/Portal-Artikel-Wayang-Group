@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Helpers\ColorHelper;
 use App\Http\Requests\Company\StoreCompanyRequest;
 use App\Http\Requests\Company\UpdateCompanyRequest;
 use App\Models\Company;
@@ -55,6 +56,8 @@ class CompanyController extends Controller
 
             $validated['slug'] = $validated['slug'] ? Str::slug($validated['slug']) : Str::slug($validated['name']);
             $validated['is_active'] = $request->has('is_active');
+            $validated['primary_color'] = ColorHelper::normalizeHex($validated['primary_color'] ?? null, ColorHelper::DEFAULT_PRIMARY);
+            $validated['sidebar_color'] = ColorHelper::normalizeHex($validated['sidebar_color'] ?? null, ColorHelper::DEFAULT_SIDEBAR);
 
             if ($request->hasFile('logo')) {
                 $validated['logo_path'] = $this->imageService->processUpload(
@@ -104,6 +107,8 @@ class CompanyController extends Controller
 
             $validated['slug'] = $validated['slug'] ? Str::slug($validated['slug']) : Str::slug($validated['name']);
             $validated['is_active'] = $request->has('is_active');
+            $validated['primary_color'] = ColorHelper::normalizeHex($validated['primary_color'] ?? null, ColorHelper::DEFAULT_PRIMARY);
+            $validated['sidebar_color'] = ColorHelper::normalizeHex($validated['sidebar_color'] ?? null, ColorHelper::DEFAULT_SIDEBAR);
 
             if ($request->hasFile('logo')) {
                 if ($company->logo_path) {

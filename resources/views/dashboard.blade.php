@@ -19,7 +19,7 @@
                 <span class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 block">Total Artikel</span>
                 <p class="text-2xl font-bold text-slate-900">1,248</p>
             </div>
-            <div class="p-2.5 bg-amber-50 border border-amber-200/60 rounded-lg text-[#C59B27]">
+            <div class="p-2.5 bg-amber-50 border border-amber-200/60 rounded-lg text-brand">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
             </div>
         </div>
@@ -65,12 +65,12 @@
             <div x-data="calendarWidget()" class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
                 <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
                     <div class="flex items-center gap-2">
-                        <svg class="w-4 h-4 text-[#C59B27]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                        <svg class="w-4 h-4 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                         <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Jadwal Content Release</h3>
                     </div>
                     <div class="flex items-center gap-2">
                         <button @click="prevMonth()" class="px-2 py-1 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded transition">&lt;</button>
-                        <span class="text-xs font-bold text-[#C59B27]" x-text="monthNames[currentMonth] + ' ' + currentYear"></span>
+                        <span class="text-xs font-bold text-brand" x-text="monthNames[currentMonth] + ' ' + currentYear"></span>
                         <button @click="nextMonth()" class="px-2 py-1 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded transition">&gt;</button>
                     </div>
                 </div>
@@ -86,9 +86,9 @@
                     <template x-for="date in daysInMonth" :key="date">
                         <div @click="selectDate(date)"
                              :class="{
-                                'bg-[#C59B27] text-white font-bold shadow-sm': isToday(date),
+                                'bg-brand text-brand-text font-bold shadow-sm': isToday(date),
                                 'bg-slate-50 text-slate-700 hover:bg-slate-100 border-slate-200': !isToday(date),
-                                'border-[#C59B27] ring-1 ring-[#C59B27]': selectedDate === date && !isToday(date)
+                                'border-brand ring-1 ring-brand': selectedDate === date && !isToday(date)
                              }"
                              class="p-2 text-center rounded-lg border cursor-pointer transition">
                             <span x-text="date"></span>
@@ -107,7 +107,7 @@
                 <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider mb-4 pb-2 border-b border-slate-100">Aksi Cepat</h3>
                 <div class="grid grid-cols-2 gap-2">
                     <a href="#" class="p-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-xs font-medium text-center text-slate-800 flex flex-col items-center gap-1.5 transition">
-                        <svg class="w-4 h-4 text-[#C59B27]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                        <svg class="w-4 h-4 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                         <span>Buat Artikel</span>
                     </a>
                 </div>
@@ -127,9 +127,9 @@
                     </div>
 
                     <div class="flex items-start gap-3 pb-3 border-b border-slate-100">
-                        <div class="w-2 h-2 rounded-full bg-[#C59B27] mt-1.5 shrink-0"></div>
+                        <div class="w-2 h-2 rounded-full bg-brand mt-1.5 shrink-0"></div>
                         <div>
-                            <p class="text-slate-800 font-medium">Tenant dipilih: <span class="text-[#C59B27] font-semibold">PT Wayang Transport</span></p>
+                            <p class="text-slate-800 font-medium">Tenant dipilih: <span class="text-brand font-semibold">PT Wayang Transport</span></p>
                             <span class="text-[10px] text-slate-400 block mt-0.5">20 menit yang lalu</span>
                         </div>
                     </div>

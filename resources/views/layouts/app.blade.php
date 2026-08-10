@@ -9,13 +9,31 @@
     <script defer src="https://unpkg.com/@alpinejs/collapse@3.x.x/dist/cdn.min.js"></script>
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     @stack('styles')
+
+    {{-- Dynamic Multi-Tenant Branding: CSS Variables dari Perusahaan Aktif --}}
+    @php
+        use App\Helpers\ColorHelper;
+
+        $brandPrimary     = ColorHelper::normalizeHex($activeCompany?->primary_color, ColorHelper::DEFAULT_PRIMARY);
+        $brandSidebar     = ColorHelper::normalizeHex($activeCompany?->sidebar_color, ColorHelper::DEFAULT_SIDEBAR);
+        $brandPrimaryText = ColorHelper::getContrastTextColor($brandPrimary);
+        $brandSidebarText = ColorHelper::getContrastTextColor($brandSidebar);
+    @endphp
+    <style>
+        :root {
+            --color-primary: {{ $brandPrimary }};
+            --color-primary-text: {{ $brandPrimaryText }};
+            --color-sidebar: {{ $brandSidebar }};
+            --color-sidebar-text: {{ $brandSidebarText }};
+        }
+    </style>
 </head>
 
 <body class="h-full bg-slate-50 text-slate-800 font-sans antialiased overflow-hidden">
 
     <div class="h-screen flex overflow-hidden">
 
-        <aside class="w-64 bg-[#1E1E1E] shrink-0 h-full border-r border-[#2A2A2A] hidden lg:block overflow-y-auto">
+        <aside class="w-64 bg-brand-sidebar shrink-0 h-full border-r border-brand-border hidden lg:block overflow-y-auto">
             @include('partials.navigation')
         </aside>
 

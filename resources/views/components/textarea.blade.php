@@ -10,7 +10,7 @@
 <div class="space-y-1.5">
     @if($label)
         <label for="{{ $name }}" class="block text-xs font-semibold text-brand-muted uppercase tracking-wider">
-            {{ $label }} @if($required) <span class="text-brand-gold">*</span> @endif
+            {{ $label }} @if($required) <span class="text-brand">*</span> @endif
         </label>
     @endif
 
@@ -20,7 +20,7 @@
               placeholder="{{ $placeholder }}"
               {{ $required ? 'required' : '' }}
               {{ $attributes->merge([
-                  'class' => 'w-full bg-brand-surface border text-xs text-brand-text rounded-lg px-3 py-2.5 focus:outline-none focus:border-brand-gold focus:ring-1 focus:ring-brand-gold transition placeholder:text-brand-muted/50 resize-y ' . ($errors->has($name) ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-brand-stroke')
+                  'class' => 'w-full bg-brand-surface border text-xs text-brand rounded-lg px-3 py-2.5 focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand transition placeholder:text-brand-muted/50 resize-y ' . ($errors->has($name) ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-brand-stroke')
               ]) }}>{{ old($name, $value) }}</textarea>
 
     @error($name)

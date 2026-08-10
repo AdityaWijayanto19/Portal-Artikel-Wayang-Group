@@ -45,14 +45,15 @@ class SetCompanyContext
         }
 
         // 4. Ambil Objek Perusahaan Aktif
-        $currentCompany = null;
+        $activeCompany = null;
         if ($activeCompanyId && $activeCompanyId !== 'all') {
-            $currentCompany = Company::find($activeCompanyId);
+            $activeCompany = Company::find($activeCompanyId);
         }
 
         // 5. Share Variabel Global ke Seluruh Blade Views
         View::share('activeCompanyId', $activeCompanyId);
-        View::share('currentCompany', $currentCompany);
+        View::share('activeCompany', $activeCompany);
+        View::share('currentCompany', $activeCompany); // alias kompatibilitas
         View::share('availableCompanies', $availableCompanies);
 
         return $next($request);

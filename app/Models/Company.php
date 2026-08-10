@@ -14,7 +14,14 @@ class Company extends Model
         'name',
         'slug',
         'logo_path',
+        'primary_color',
+        'sidebar_color',
         'is_active',
+    ];
+
+    protected $attributes = [
+        'primary_color' => '#C59B27',
+        'sidebar_color' => '#1E1E1E',
     ];
 
     // Satu perusahaan punya banyak user

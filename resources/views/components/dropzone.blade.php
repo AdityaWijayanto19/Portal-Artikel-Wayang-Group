@@ -132,7 +132,7 @@
     <div @dragover.prevent="isDragging = true"
          @dragleave.prevent="isDragging = false"
          @drop.prevent="isDragging = false; handleDrop($event)"
-         :class="isDragging ? 'border-[#C59B27] bg-amber-50/50' : 'border-slate-200 bg-slate-50/50 hover:border-[#C59B27]/60 hover:bg-white'"
+         :class="isDragging ? 'border-brand bg-amber-50/50' : 'border-slate-200 bg-slate-50/50 hover:border-brand/60 hover:bg-white'"
          class="relative border-2 border-dashed rounded-2xl p-4 transition-all duration-200 text-center flex-1 flex flex-col items-center justify-center min-h-[200px]">
 
         <!-- Hidden Input File -->
@@ -146,13 +146,13 @@
         <!-- STATE 1: Kosong (Belum ada file) -->
         <template x-if="!preview">
             <div @click="triggerBrowse()" class="w-full h-full flex flex-col items-center justify-center cursor-pointer space-y-2 py-4">
-                <div class="w-12 h-12 rounded-full bg-white border border-slate-200 shadow-xs flex items-center justify-center text-[#C59B27]">
+                <div class="w-12 h-12 rounded-full bg-white border border-slate-200 shadow-xs flex items-center justify-center text-brand">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                     </svg>
                 </div>
                 <p class="text-xs text-slate-700 font-semibold">
-                    Tarik file ke sini, atau <span class="text-[#C59B27] underline">pilih file</span>
+                    Tarik file ke sini, atau <span class="text-brand underline">pilih file</span>
                 </p>
                 <p class="text-[10px] text-slate-400">Format yang didukung: {{ strtoupper(str_replace(['image/', '.'], '', $accept)) }}</p>
             </div>
@@ -198,7 +198,7 @@
         <template x-if="preview === 'document'">
             <div class="w-full flex items-center justify-between p-3 bg-white rounded-xl border border-slate-200 shadow-sm">
                 <div class="flex items-center space-x-3 truncate">
-                    <div class="p-2 bg-amber-50 text-[#C59B27] rounded-lg">
+                    <div class="p-2 bg-amber-50 text-brand rounded-lg">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                         </svg>
@@ -209,7 +209,7 @@
                     </div>
                 </div>
                 <div class="flex items-center space-x-1">
-                    <button type="button" @click="triggerBrowse()" title="Ganti File" class="p-1.5 text-slate-500 hover:text-[#C59B27] rounded-md transition">
+                    <button type="button" @click="triggerBrowse()" title="Ganti File" class="p-1.5 text-slate-500 hover:text-brand rounded-md transition">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
                         </svg>

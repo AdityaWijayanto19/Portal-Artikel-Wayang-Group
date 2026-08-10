@@ -20,6 +20,8 @@ class UpdateCompanyRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'slug' => ['nullable', 'string', 'max:255', Rule::unique('companies', 'slug')->ignore($companyId)],
             'logo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+            'primary_color' => ['nullable', 'string', 'max:7', 'regex:/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/'],
+            'sidebar_color' => ['nullable', 'string', 'max:7', 'regex:/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/'],
             'is_active' => ['nullable', 'boolean'],
         ];
     }
@@ -36,6 +38,8 @@ class UpdateCompanyRequest extends FormRequest
             'logo.image' => 'File logo harus berupa gambar.',
             'logo.mimes' => 'Format logo harus JPG, JPEG, PNG, atau WEBP.',
             'logo.max' => 'Ukuran logo maksimal 2 MB.',
+            'primary_color.regex' => 'Format warna primer tidak valid. Gunakan format hex, contoh: #C59B27.',
+            'sidebar_color.regex' => 'Format warna sidebar tidak valid. Gunakan format hex, contoh: #1E1E1E.',
             'is_active.boolean' => 'Status aktif perusahaan tidak valid.',
         ];
     }

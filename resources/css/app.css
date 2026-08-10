@@ -29,8 +29,13 @@
     --color-brand-surface: #252525;
     --color-brand-border: #2a2a2a;
     --color-brand-stroke: #333333;
-    --color-brand-text: #C59B27;
     --color-brand-muted: #a1a1aa;
+
+    /* Dynamic Multi-Tenant Branding (dipetakan dari :root runtime oleh SetCompanyContext) */
+    --color-brand: var(--color-primary);
+    --color-brand-text: var(--color-primary-text);
+    --color-brand-sidebar: var(--color-sidebar);
+    --color-brand-sidebar-text: var(--color-sidebar-text);
 }
 
 /* 5. Fallback Root Variables (Jika dibutuhkan untuk skrip/library non-Tailwind) */
@@ -39,4 +44,10 @@
     --wg-charcoal: #2d2d2d;
     --wg-brown: #6b4f2b;
     --wg-cream: #f5f0e6;
+
+    /* Fallback Multi-Tenant Branding = Identitas Induk Wayang Group */
+    --color-primary: #C59B27;
+    --color-primary-text: #1E1E1E;
+    --color-sidebar: #1E1E1E;
+    --color-sidebar-text: #FFFFFF;
 }

@@ -37,7 +37,7 @@
             </label>
             <input type="text" name="title" id="title" x-model="articleTitle" @input="onTitleInput()"
                 placeholder="Judul utama yang menarik & mengandung keyword..."
-                class="w-full bg-white text-slate-900 text-xl font-bold border-0 border-b border-slate-200 rounded-none px-1 py-2 focus:outline-none focus:border-[#C59B27] transition placeholder:text-slate-300 placeholder:font-normal">
+                class="w-full bg-white text-slate-900 text-xl font-bold border-0 border-b border-slate-200 rounded-none px-1 py-2 focus:outline-none focus:border-brand transition placeholder:text-slate-300 placeholder:font-normal">
             <p class="text-[10px] text-slate-400">Judul ini akan menjadi <strong>&lt;h1&gt;</strong> pada artikel
                 WordPress.</p>
             @error('title')
@@ -60,7 +60,7 @@
             <button type="button" @click="seoOpen = !seoOpen"
                 class="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-slate-50 transition">
                 <span class="flex items-center gap-2">
-                    <svg class="w-4 h-4 text-[#C59B27]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-4 h-4 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M13 10V3L4 14h7v7l9-11h-7z" />
                     </svg>
@@ -87,7 +87,7 @@
                         Title</label>
                     <input type="text" name="yoast_title" id="yoast_title" x-model="seoTitle" @input="recompute()"
                         placeholder="Judul untuk mesin pencari (50-60 karakter ideal)"
-                        class="w-full bg-white text-slate-800 text-xs border border-slate-300 rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-[#C59B27] focus:ring-1 focus:ring-[#C59B27] transition">
+                        class="w-full bg-white text-slate-800 text-xs border border-slate-300 rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand transition">
                     <p class="text-[10px] text-slate-400">Kosongkan untuk memakai Judul Artikel. Panjang: <span
                             x-text="(seoTitle || articleTitle).length"></span> karakter</p>
                 </div>
@@ -97,7 +97,7 @@
                         (URL)</label>
                     <input type="text" id="slug_field" x-model="slug"
                         @input="slug = slugify(slug); slugEdited = true; recompute()" placeholder="auto-dari-judul"
-                        class="w-full bg-white text-slate-800 text-xs font-mono border border-slate-300 rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-[#C59B27] focus:ring-1 focus:ring-[#C59B27] transition">
+                        class="w-full bg-white text-slate-800 text-xs font-mono border border-slate-300 rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand transition">
                     <input type="hidden" name="slug" :value="slug">
                 </div>
 
@@ -106,7 +106,7 @@
                         class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Meta Description</label>
                     <textarea name="yoast_metadesc" id="yoast_metadesc" rows="3" x-model="metadesc" @input="recompute()"
                         placeholder="Ringkasan menarik 120-156 karakter yang muncul di hasil pencarian Google..."
-                        class="w-full bg-white text-slate-800 text-xs border border-slate-300 rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-[#C59B27] focus:ring-1 focus:ring-[#C59B27] transition resize-y"></textarea>
+                        class="w-full bg-white text-slate-800 text-xs border border-slate-300 rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand transition resize-y"></textarea>
                     <p class="text-[10px] text-slate-400">Panjang: <span x-text="metadesc.length"></span> karakter</p>
                 </div>
 
@@ -230,7 +230,7 @@
                     class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Status</label>
                 <div class="relative w-full">
                     <select name="status" id="status" x-model="status"
-                        class="w-full bg-white text-slate-800 text-xs font-medium border border-slate-300 rounded-xl px-3.5 py-2.5 pr-10 appearance-none focus:outline-none focus:border-[#C59B27] focus:ring-1 focus:ring-[#C59B27] transition shadow-xs cursor-pointer select-none">
+                        class="w-full bg-white text-slate-800 text-xs font-medium border border-slate-300 rounded-xl px-3.5 py-2.5 pr-10 appearance-none focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand transition shadow-xs cursor-pointer select-none">
                         <option value="draft" class="text-slate-800 bg-white py-2">Draft (simpan saja)</option>
                         <option value="published" class="text-slate-800 bg-white py-2">Published (kirim ke WordPress)
                         </option>
@@ -252,7 +252,7 @@
 
             <button type="submit" :disabled="status === 'published' && score < 80"
                 :class="(status === 'published' && score < 80) ? 'opacity-50 cursor-not-allowed bg-slate-300' : (
-                    status === 'published' ? 'bg-[#C59B27] hover:bg-[#b08820] text-white' :
+                    status === 'published' ? 'bg-brand hover:bg-brand/90 text-brand-text' :
                     'bg-slate-800 hover:bg-slate-900 text-white')"
                 class="w-full inline-flex items-center justify-center gap-2 text-xs font-semibold px-4 py-2.5 rounded-xl transition shadow-sm">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -291,7 +291,7 @@
 
             @if ($canChooseAuthor)
                 <select name="user_id" id="user_id"
-                    class="w-full bg-white text-slate-800 text-xs border border-slate-300 rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-[#C59B27] focus:ring-1 focus:ring-[#C59B27] transition">
+                    class="w-full bg-white text-slate-800 text-xs border border-slate-300 rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand transition">
                     @forelse ($authors as $author)
                         <option value="{{ $author->id }}"
                             {{ (int) $selectedAuthor === $author->id ? 'selected' : '' }}>
@@ -337,7 +337,7 @@
                         <input type="checkbox" name="categories[]" value="{{ $category->id }}"
                             :checked="selectedCategories.includes('{{ $category->id }}')"
                             @change="onCategoryToggle('{{ $category->id }}', $el.checked)"
-                            class="w-4 h-4 rounded border-slate-300 text-[#C59B27] accent-[#C59B27] focus:ring-[#C59B27]">
+                            class="w-4 h-4 rounded border-slate-300 text-brand accent-brand focus:ring-brand">
                         <span class="text-xs text-slate-700">{{ $category->name }}</span>
                     </label>
                 @empty
@@ -360,7 +360,7 @@
                     <input type="checkbox" name="wp_site_ids[]" value="{{ $site->id }}"
                         :checked="selectedSites.includes('{{ $site->id }}')"
                         @change="onSiteToggle('{{ $site->id }}', $el.checked)"
-                        class="w-4 h-4 rounded border-slate-300 text-[#C59B27] accent-[#C59B27] focus:ring-[#C59B27]">
+                        class="w-4 h-4 rounded border-slate-300 text-brand accent-brand focus:ring-brand">
                     <span class="text-xs text-slate-700">{{ $site->site_name }}</span>
                 </label>
             @empty

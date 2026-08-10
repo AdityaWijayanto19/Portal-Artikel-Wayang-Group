@@ -5,7 +5,7 @@
 
 @section('header_actions')
     <a href="{{ route('companies.create') }}"
-        class="inline-flex items-center gap-2 bg-[#C59B27] hover:bg-[#b08820] text-white text-xs font-semibold px-4 py-2 rounded-lg transition shadow-sm">
+        class="inline-flex items-center gap-2 bg-brand hover:bg-brand/90 text-brand-text text-xs font-semibold px-4 py-2 rounded-lg transition shadow-sm">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
         </svg>
@@ -45,7 +45,7 @@
                                     class="w-full h-full object-cover">
                             @else
                                 <span
-                                    class="text-xs font-bold text-[#C59B27]">{{ strtoupper(substr($company->name, 0, 2)) }}</span>
+                                    class="text-xs font-bold text-brand">{{ strtoupper(substr($company->name, 0, 2)) }}</span>
                             @endif
                         </div>
                         <div>
@@ -82,7 +82,7 @@
                             </svg>
                         </a>
                         <a href="{{ route('companies.edit', $company) }}"
-                            class="p-1.5 inline-flex bg-amber-50 hover:bg-amber-100 text-[#C59B27] rounded transition"
+                            class="p-1.5 inline-flex bg-amber-50 hover:bg-amber-100 text-brand rounded transition"
                             title="Edit">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"

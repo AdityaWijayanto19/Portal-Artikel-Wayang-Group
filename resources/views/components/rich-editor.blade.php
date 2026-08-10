@@ -81,7 +81,7 @@
                             // Hanya izinkan format struktur SEO yang baik: Paragraf, H2, H3.
                             // (H1 dipakai untuk judul artikel di field terpisah.)
                             block_formats: 'Paragraf=p; Sub-judul (H2)=h2; Sub-sub-judul (H3)=h3',
-                            content_style: 'body{font-family:ui-sans-serif,system-ui,sans-serif;font-size:14px;color:#1e293b;line-height:1.7} h2{font-size:1.35rem;font-weight:700;margin:1.2em 0 .4em} h3{font-size:1.15rem;font-weight:600;margin:1em 0 .3em} a{color:#C59B27;text-decoration:underline}',
+                            content_style: 'body{font-family:ui-sans-serif,system-ui,sans-serif;font-size:14px;color:#1e293b;line-height:1.7} h2{font-size:1.35rem;font-weight:700;margin:1.2em 0 .4em} h3{font-size:1.15rem;font-weight:600;margin:1em 0 .3em} a{color:var(--color-primary);text-decoration:underline}',
 
                             // ==== WORDPRESS PARITY: whitelist tag semantik & buang atribut kotor ====
                             valid_elements: 'p,br,strong/b,em/i,u,h2,h3,ul,ol,li,a[href|title|target|rel],blockquote,img[src|alt|title|width|height],table,thead,tbody,tr,td,th',

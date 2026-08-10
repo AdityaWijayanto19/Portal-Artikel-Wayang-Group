@@ -4,7 +4,7 @@
 
 @section('header_actions')
     <a href="{{ route('users.create') }}"
-        class="inline-flex items-center gap-2 bg-[#C59B27] hover:bg-[#b08820] text-white text-xs font-semibold px-4 py-2 rounded-lg transition shadow-sm">
+        class="inline-flex items-center gap-2 bg-brand hover:bg-brand/90 text-brand-text text-xs font-semibold px-4 py-2 rounded-lg transition shadow-sm">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
         </svg>
@@ -75,7 +75,7 @@
                     <td class="px-6 py-4 text-right">
                         <div class="inline-flex items-center gap-1.5">
                             <a href="{{ route('users.edit', $user) }}"
-                                class="p-2 bg-amber-50 hover:bg-amber-100 text-[#C59B27] rounded-lg transition"
+                                class="p-2 bg-amber-50 hover:bg-amber-100 text-brand rounded-lg transition"
                                 title="Edit">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"

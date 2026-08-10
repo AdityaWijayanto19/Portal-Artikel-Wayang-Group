@@ -7,7 +7,7 @@
     <div class="space-y-6">
 
         <div class="bg-amber-50/60 border border-amber-200/70 rounded-xl px-4 py-3 flex items-start gap-3">
-            <svg class="w-4 h-4 text-[#C59B27] shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-4 h-4 text-brand shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                     d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
@@ -25,7 +25,7 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 @foreach ($companies as $company)
                     <a href="{{ route('articles.company', $company) }}"
-                        class="group bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md hover:border-[#C59B27]/60 transition-all duration-200 p-5 flex flex-col gap-4">
+                        class="group bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md hover:border-brand/60 transition-all duration-200 p-5 flex flex-col gap-4">
 
                         <div class="flex items-center gap-3">
                             <div
@@ -35,11 +35,11 @@
                                         class="w-full h-full object-contain">
                                 @else
                                     <span
-                                        class="text-sm font-bold text-[#C59B27]">{{ strtoupper(substr($company->name, 0, 2)) }}</span>
+                                        class="text-sm font-bold text-brand">{{ strtoupper(substr($company->name, 0, 2)) }}</span>
                                 @endif
                             </div>
                             <div class="min-w-0">
-                                <h3 class="text-sm font-bold text-slate-900 truncate group-hover:text-[#C59B27] transition">
+                                <h3 class="text-sm font-bold text-slate-900 truncate group-hover:text-brand transition">
                                     {{ $company->name }}</h3>
                                 <p class="text-[11px] text-slate-400 font-mono truncate">{{ $company->slug }}</p>
                             </div>
@@ -60,7 +60,7 @@
                             </div>
                         </div>
 
-                        <div class="flex items-center justify-end text-[11px] font-semibold text-[#C59B27] gap-1">
+                        <div class="flex items-center justify-end text-[11px] font-semibold text-brand gap-1">
                             <span>Kelola Artikel</span>
                             <svg class="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" fill="none"
                                 stroke="currentColor" viewBox="0 0 24 24">

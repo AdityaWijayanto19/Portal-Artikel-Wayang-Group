@@ -4,7 +4,7 @@
 
 @section('header_actions')
     <a href="{{ route('categories.create') }}"
-        class="inline-flex items-center gap-2 bg-[#C59B27] hover:bg-[#b08820] text-white text-xs font-semibold px-4 py-2 rounded-lg transition shadow-sm">
+        class="inline-flex items-center gap-2 bg-brand hover:bg-brand/90 text-brand-text text-xs font-semibold px-4 py-2 rounded-lg transition shadow-sm">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
         </svg>
@@ -30,7 +30,7 @@
                         <div class="flex items-center gap-3">
                             <div
                                 class="w-10 h-10 rounded-xl border border-slate-200/60 bg-slate-50 flex items-center justify-center shrink-0">
-                                <svg class="w-4 h-4 text-[#C59B27]" fill="none" stroke="currentColor"
+                                <svg class="w-4 h-4 text-brand" fill="none" stroke="currentColor"
                                     viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M3 7a2 2 0 012-2h5l2 2h7a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
@@ -53,7 +53,7 @@
                     <td class="px-6 py-4 text-right">
                         <div class="inline-flex items-center gap-1.5">
                             <a href="{{ route('categories.edit', $category) }}"
-                                class="p-2 bg-amber-50 hover:bg-amber-100 text-[#C59B27] rounded-lg transition"
+                                class="p-2 bg-amber-50 hover:bg-amber-100 text-brand rounded-lg transition"
                                 title="Edit">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"

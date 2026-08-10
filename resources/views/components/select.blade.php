@@ -24,7 +24,7 @@
             ? 'bg-slate-900 text-slate-200 border-slate-700 placeholder-slate-500'
             : 'bg-white text-slate-800 border-slate-200',
         'divide' => $dark ? 'divide-slate-700/60' : 'divide-slate-50',
-        'optSelected' => 'bg-[#C59B27]/15 text-[#C59B27] font-semibold',
+        'optSelected' => 'bg-brand/15 text-brand font-semibold',
         'optHighlight' => $dark ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-900',
         'optDefault' => $dark ? 'text-slate-300 hover:bg-slate-700/50' : 'text-slate-700 hover:bg-slate-50',
     ];
@@ -131,7 +131,7 @@
             'class' =>
                 'w-full ' .
                 $t['button'] .
-                ' text-xs border rounded-xl px-3.5 py-2.5 text-left flex items-center justify-between focus:outline-none focus:border-[#C59B27] focus:ring-1 focus:ring-[#C59B27] transition shadow-xs cursor-pointer select-none ' .
+                ' text-xs border rounded-xl px-3.5 py-2.5 text-left flex items-center justify-between focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand transition shadow-xs cursor-pointer select-none ' .
                 ($errors->has($name) ? 'border-rose-500 focus:border-rose-500 focus:ring-rose-500' : ''),
         ]) }}>
 
@@ -141,7 +141,7 @@
         </span>
 
         <svg class="w-4 h-4 text-slate-400 transition-transform duration-200 shrink-0 ml-2"
-            :class="{ 'rotate-180 text-[#C59B27]': open }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            :class="{ 'rotate-180 text-brand': open }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
         </svg>
     </button>
@@ -160,7 +160,7 @@
                     <input type="text" x-ref="searchInput" x-model="search"
                         @keydown.arrow-down.prevent="highlightNext()" @keydown.arrow-up.prevent="highlightPrev()"
                         @keydown.enter.prevent="selectHighlighted()" placeholder="Cari..."
-                        class="w-full {{ $t['searchInput'] }} text-xs border rounded-lg pl-8 pr-3 py-1.5 focus:outline-none focus:border-[#C59B27]">
+                        class="w-full {{ $t['searchInput'] }} text-xs border rounded-lg pl-8 pr-3 py-1.5 focus:outline-none focus:border-brand">
 
                     <svg class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" fill="none"
                         stroke="currentColor" viewBox="0 0 24 24">
@@ -184,7 +184,7 @@
                     <span x-text="opt.label" class="truncate"></span>
 
                     <template x-if="String(opt.value) === String(value)">
-                        <svg class="w-3.5 h-3.5 text-[#C59B27] shrink-0 ml-2" fill="none" stroke="currentColor"
+                        <svg class="w-3.5 h-3.5 text-brand shrink-0 ml-2" fill="none" stroke="currentColor"
                             viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
                                 d="M5 13l4 4L19 7" />

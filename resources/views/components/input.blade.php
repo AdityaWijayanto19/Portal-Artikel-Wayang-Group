@@ -21,7 +21,7 @@
            placeholder="{{ $placeholder }}"
            {{ $required ? 'required' : '' }}
            {{ $attributes->merge([
-               'class' => 'w-full bg-white text-slate-800 text-xs border border-slate-300 rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-[#C59B27] focus:ring-1 focus:ring-[#C59B27] transition placeholder:text-slate-400 shadow-xs ' . ($errors->has($name) ? 'border-rose-500 focus:border-rose-500 focus:ring-rose-500' : '')
+               'class' => 'w-full bg-white text-slate-800 text-xs border border-slate-300 rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand transition placeholder:text-slate-400 shadow-xs ' . ($errors->has($name) ? 'border-rose-500 focus:border-rose-500 focus:ring-rose-500' : '')
            ]) }}>
 
     @error($name)

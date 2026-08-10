@@ -37,9 +37,9 @@
             <!-- Modal Header -->
             <div class="flex items-center justify-between pb-4 mb-4 border-b border-brand-border">
                 @if($title)
-                    <h3 class="text-sm font-bold text-brand-text uppercase tracking-wider">{{ $title }}</h3>
+                    <h3 class="text-sm font-bold text-brand uppercase tracking-wider">{{ $title }}</h3>
                 @endif
-                <button @click="show = false" class="text-brand-muted hover:text-brand-text transition">
+                <button @click="show = false" class="text-brand-muted hover:text-brand transition">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
             </div>

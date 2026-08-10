@@ -24,7 +24,7 @@
             </a>
         @endhasrole
         <a href="{{ route('articles.create') }}"
-            class="inline-flex items-center gap-2 bg-[#C59B27] hover:bg-[#b08820] text-white text-xs font-semibold px-4 py-2 rounded-lg transition shadow-sm">
+            class="inline-flex items-center gap-2 bg-brand hover:bg-brand/90 text-brand-text text-xs font-semibold px-4 py-2 rounded-lg transition shadow-sm">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
             </svg>
@@ -107,7 +107,7 @@
                                             : 'bg-slate-400'))"></span>
                                     <div class="min-w-0 flex-1">
                                         <a href="#" x-cloak x-show="postUrl('{{ $article->id }}', '{{ $siteId }}')" :href="postUrl('{{ $article->id }}', '{{ $siteId }}')" target="_blank" rel="noopener"
-                                            class="inline-flex items-center gap-1 text-[11px] font-medium text-[#C59B27] hover:text-[#8a6d15] hover:underline truncate block max-w-[160px]"
+                                            class="inline-flex items-center gap-1 text-[11px] font-medium text-brand hover:text-brand/80 hover:underline truncate block max-w-[160px]"
                                             :title="'Buka artikel di ' + siteName('{{ $article->id }}', '{{ $siteId }}')">
                                             <span class="truncate" x-text="siteName('{{ $article->id }}', '{{ $siteId }}')"></span>
                                             <svg class="w-2.5 h-2.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -174,7 +174,7 @@
                         <div class="flex items-center justify-end gap-1.5">
                             {{-- Tombol Edit --}}
                             <a href="{{ route('articles.edit', $article) }}"
-                                class="p-1.5 inline-flex items-center justify-center bg-amber-50 hover:bg-amber-100 text-[#C59B27] rounded transition"
+                                class="p-1.5 inline-flex items-center justify-center bg-amber-50 hover:bg-amber-100 text-brand rounded transition"
                                 title="Edit">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"

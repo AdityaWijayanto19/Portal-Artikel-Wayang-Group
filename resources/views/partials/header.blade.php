@@ -11,11 +11,11 @@
     // Perbaikan: Pastikan $globalCompanies selalu ada
     $companiesList = $globalCompanies ?? collect();
     $activeCompanyId = session('active_company_id');
-    $activeCompany = null;
+    $activeCompany = $activeCompany ?? null;
 
     if ($currentUser->isSuperAdmin()) {
         if ($activeCompanyId && $activeCompanyId !== 'all') {
-            $activeCompany = $companiesList->firstWhere('id', $activeCompanyId);
+            $activeCompany = $activeCompany ?: $companiesList->firstWhere('id', $activeCompanyId);
         }
     } else {
         // Perbaikan: Menggunakan $currentUser->company (BelongsTo) bukan $currentUser->companies (null)
@@ -25,8 +25,8 @@
     // Assign Nama Perusahaan
     $displayCompanyName = $activeCompany->name ?? 'Wayang Group';
 
-    // Ambil kolom logo (Mengecek beberapa nama kolom opsional di DB)
-    $rawLogo = $activeCompany?->logo_url ?? ($activeCompany?->logo ?? $activeCompany?->logo_path);
+    // Ambil kolom logo
+    $rawLogo = $activeCompany?->logo_path;
 
     // Evaluasi URL Logo
     if ($rawLogo) {
@@ -45,15 +45,43 @@
 
     <!-- Kiri: Info Perusahaan / Tenant Aktif -->
     <div class="flex items-center gap-3">
-        <div class="w-auto h-6 flex items-center justify-center overflow-hidden">
-            <img src="{{ $displayCompanyLogo }}" alt="{{ $displayCompanyName }}"
-                class="max-w-full max-h-full object-contain">
-        </div>
-        <div>
-            <span
-                class="text-[10px] font-black uppercase tracking-wider text-slate-400 block leading-none mb-0.5">Perusahaan</span>
-            <h2 class="text-sm font-bold text-slate-800 leading-tight">{{ $displayCompanyName }}</h2>
-        </div>
+        @hasrole('super_admin')
+            {{-- Tampilan khusus Super Admin (Active Tenant Context) --}}
+            <div class="w-auto h-6 flex items-center justify-center overflow-hidden">
+                <img src="{{ $displayCompanyLogo }}" alt="{{ $displayCompanyName }}"
+                    class="max-w-full max-h-full object-contain">
+            </div>
+            <div>
+                <span class="text-[10px] font-black uppercase tracking-wider text-slate-400 block leading-none mb-0.5">
+                    Perusahaan
+                </span>
+                <h2 class="text-sm font-bold text-slate-800 leading-tight">{{ $displayCompanyName }}</h2>
+            </div>
+        @endhasrole
+
+        @hasanyrole('company_admin|admin|author')
+            @php
+                $hour = now()->hour;
+                if ($hour >= 5 && $hour < 11) {
+                    $greeting = 'Selamat Pagi';
+                } elseif ($hour >= 11 && $hour < 15) {
+                    $greeting = 'Selamat Siang';
+                } elseif ($hour >= 15 && $hour < 18) {
+                    $greeting = 'Selamat Sore';
+                } else {
+                    $greeting = 'Selamat Malam';
+                }
+            @endphp
+
+            <div>
+                <span class="text-[10px] font-black uppercase tracking-wider text-slate-400 block leading-none mb-0.5">
+                    {{ $greeting }}
+                </span>
+                <h2 class="text-sm font-bold text-slate-800 leading-tight">
+                    {{ auth()->user()->name }}
+                </h2>
+            </div>
+        @endhasanyrole
     </div>
 
     <!-- Kanan: User Profile Dropdown (Alpine.js) -->
@@ -68,13 +96,13 @@
 
                 <!-- Avatar User -->
                 <img src="{{ $userAvatar }}" alt="{{ $userName }}"
-                    class="w-9 h-9 rounded-full object-cover border-2 border-brand-gold transition">
+                    class="w-9 h-9 rounded-full object-cover border-2 border-brand transition">
 
                 <!-- Nama & Role -->
                 <div class="text-left hidden md:block leading-tight pr-1">
                     <span
                         class="text-xs font-bold text-slate-800 block truncate max-w-[120px]">{{ $userName }}</span>
-                    <span class="text-[10px] font-medium text-[#C59B27] capitalize block">{{ $userRole }}</span>
+                    <span class="text-[10px] font-medium text-brand capitalize block">{{ $userRole }}</span>
                 </div>
 
                 <!-- Chevron Icon -->
@@ -102,24 +130,13 @@
 
                 <!-- Menu Item -->
                 <div class="py-1 text-xs">
-                    <a href="#"
+                    <a href="{{ route('profile.edit') }}"
                         class="flex items-center gap-2.5 px-4 py-2 text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition">
                         <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                         </svg>
                         <span>Profile Saya</span>
-                    </a>
-
-                    <a href="#"
-                        class="flex items-center gap-2.5 px-4 py-2 text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition">
-                        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                        <span>Pengaturan Akun</span>
                     </a>
                 </div>
 

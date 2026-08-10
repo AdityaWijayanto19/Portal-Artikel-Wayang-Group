@@ -4,7 +4,7 @@
 
 @section('header_actions')
     <a href="{{ route('wp-sites.create') }}"
-        class="inline-flex items-center gap-2 bg-[#C59B27] hover:bg-[#b08820] text-white text-xs font-semibold px-4 py-2 rounded-lg transition shadow-sm">
+        class="inline-flex items-center gap-2 bg-brand hover:bg-brand/90 text-brand-text text-xs font-semibold px-4 py-2 rounded-lg transition shadow-sm">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
         </svg>
@@ -29,7 +29,7 @@
                         <div class="flex items-center gap-3">
                             <div
                                 class="w-10 h-10 rounded-xl border border-slate-200/60 bg-slate-50 flex items-center justify-center shrink-0">
-                                <svg class="w-4 h-4 text-brand-gold opacity-80 shrink-0" xmlns="http://www.w3.org/2000/svg"
+                                <svg class="w-4 h-4 text-brand opacity-80 shrink-0" xmlns="http://www.w3.org/2000/svg"
                                     width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
                                     class="lucide lucide-globe-icon lucide-globe">
@@ -46,7 +46,7 @@
                     </td>
                     <td class="px-6 py-4 text-slate-600">
                         <a href="{{ $wpSite->site_url }}" target="_blank" rel="noopener noreferrer"
-                            class="text-[#C59B27] hover:underline font-semibold">{{ $wpSite->site_url }}</a>
+                            class="text-brand hover:underline font-semibold">{{ $wpSite->site_url }}</a>
                     </td>
                     <td class="px-6 py-4">
                         <div class="flex flex-wrap gap-1.5">
@@ -67,7 +67,7 @@
                     <td class="px-6 py-4 text-right">
                         <div class="inline-flex items-center gap-1.5">
                             <a href="{{ route('wp-sites.edit', $wpSite) }}"
-                                class="p-2 bg-amber-50 hover:bg-amber-100 text-[#C59B27] rounded-lg transition"
+                                class="p-2 bg-amber-50 hover:bg-amber-100 text-brand rounded-lg transition"
                                 title="Edit">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"

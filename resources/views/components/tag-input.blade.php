@@ -32,14 +32,14 @@
     @endif
 
     <div
-        class="w-full min-h-[44px] bg-white border border-slate-300 rounded-xl px-2.5 py-2 flex flex-wrap gap-1.5 items-center focus-within:border-[#C59B27] focus-within:ring-1 focus-within:ring-[#C59B27] transition shadow-xs"
+        class="w-full min-h-[44px] bg-white border border-slate-300 rounded-xl px-2.5 py-2 flex flex-wrap gap-1.5 items-center focus-within:border-brand focus-within:ring-1 focus-within:ring-brand transition shadow-xs"
         @click="$refs.tagField.focus()"
     >
         {{-- Chip tag (otomatis tampilkan # di depan badge agar rapi) --}}
         <template x-for="(tag, index) in tags" :key="index">
-            <span class="inline-flex items-center gap-1 bg-[#C59B27]/10 text-[#8a6d15] text-[11px] font-semibold px-2 py-1 rounded-lg border border-[#C59B27]/30">
+            <span class="inline-flex items-center gap-1 bg-brand/10 text-brand/80 text-[11px] font-semibold px-2 py-1 rounded-lg border border-brand/30">
                 <span x-text="'#' + tag"></span>
-                <button type="button" @click="remove(index)" class="text-[#8a6d15]/70 hover:text-rose-500 leading-none text-sm">&times;</button>
+                <button type="button" @click="remove(index)" class="text-brand/70 hover:text-rose-500 leading-none text-sm">&times;</button>
             </span>
         </template>
 

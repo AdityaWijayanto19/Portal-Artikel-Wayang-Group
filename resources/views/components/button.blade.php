@@ -9,7 +9,7 @@
     $baseStyles = 'inline-flex items-center justify-center font-semibold rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed select-none cursor-pointer';
 
     $variants = [
-        'primary'   => 'bg-[#C59B27] text-white hover:bg-[#b08820] focus:ring-[#C59B27] shadow-xs',
+        'primary'   => 'bg-brand text-brand-text hover:bg-brand/90 focus:ring-brand shadow-xs',
         'secondary' => 'bg-slate-100 text-slate-700 hover:bg-slate-200 focus:ring-slate-300 border border-slate-200',
     ];
 
