@@ -42,6 +42,6 @@ class Company extends Model
 
     public function wpSites(): HasMany
     {
-        return $this->hasMany(WpSite::class);
+        return $this->hasMany(WPSite::class);
     }
 }
