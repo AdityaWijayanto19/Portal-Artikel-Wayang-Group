@@ -8,8 +8,6 @@
         @yield('title', 'Dashboard') - {{ $activeCompany?->name ?? 'Wayang Group' }}
     </title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    <script defer src="https://unpkg.com/@alpinejs/collapse@3.x.x/dist/cdn.min.js"></script>
-    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     @stack('styles')
 
     {{-- Dynamic Multi-Tenant Branding: CSS Variables dari Perusahaan Aktif --}}
