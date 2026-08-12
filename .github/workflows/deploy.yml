@@ -1,0 +1,26 @@
+name: Auto Deploy to Hostinger Cloud
+
+on:
+  push:
+    branches:
+      - main # Workflow berjalan otomatis setiap ada push ke branch main
+
+jobs:
+  deploy:
+    name: Deploy to Wayang Group Portal
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Executing Remote SSH Commands
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            # Pindah ke direktori portal_artikel_wayang
+            cd domains/wayang.group/public_html/portal_artikel_wayang
+
+            # Tarik update kode terbaru dari GitHub
+            git pull origin main
