@@ -75,8 +75,20 @@ class UserController extends Controller
      */
     public function edit(User $user)
     {
-        $companies = Company::orderBy('name')->get();
-        $roles = Role::where('name', '!=', 'super_admin')->get();
+        $currentUser = auth()->user();
+
+        // Isolasi tenant: non-superadmin hanya boleh mengedit user perusahaannya sendiri.
+        if (! $currentUser->isSuperAdmin() && $user->company_id !== $currentUser->company_id) {
+            abort(403, 'Anda tidak memiliki akses untuk mengubah user ini.');
+        }
+
+        if ($currentUser->isSuperAdmin()) {
+            $companies = Company::orderBy('name')->get();
+            $roles = Role::where('name', '!=', 'super_admin')->get();
+        } else {
+            $companies = Company::where('id', session('active_company_id', $currentUser->company_id))->get();
+            $roles = Role::where('name', 'author')->get();
+        }
 
         // Eager load relasi agar data terisi di form
         $user->load(['companies', 'roles']);

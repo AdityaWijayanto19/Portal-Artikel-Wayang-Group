@@ -28,8 +28,10 @@ class WpSiteController extends Controller
         $wpSites = WPSite::query()
             ->with('categories')
             ->when($request->search, function ($query, $search) {
-                $query->where('site_name', 'like', "%{$search}%")
-                    ->orWhere('site_url', 'like', "%{$search}%");
+                $query->where(function ($q) use ($search) {
+                    $q->where('site_name', 'like', "%{$search}%")
+                        ->orWhere('site_url', 'like', "%{$search}%");
+                });
             })
             ->latest()
             ->paginate(10)

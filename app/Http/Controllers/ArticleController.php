@@ -297,7 +297,11 @@ class ArticleController extends Controller
     public function retry(Article $article, ?int $wpSite = null): RedirectResponse
     {
         $siteName = $wpSite !== null
-            ? optional(WPSite::query()->withoutGlobalScope(TenantScope::class)->find($wpSite))->site_name
+            ? $article->sitePublications()
+                ->where('wp_site_id', $wpSite)
+                ->with('wpSite')
+                ->first()
+                ?->wpSite?->site_name
             : null;
 
         $this->articleService->retry($article, $wpSite);
