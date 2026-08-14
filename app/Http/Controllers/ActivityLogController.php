@@ -22,6 +22,8 @@ class ActivityLogController extends Controller
     {
         $scopeCompanyId = $this->resolveLogScopeCompanyId($request->user());
 
+        $canViewSensitiveDetails = $request->user()->can('viewSensitiveDetails', ActivityLog::class);
+
         $logs = ActivityLog::query()
             ->with(['user.roles', 'company'])
             ->when($scopeCompanyId, fn ($query) => $query->where('company_id', $scopeCompanyId))
@@ -47,6 +49,6 @@ class ActivityLogController extends Controller
 
         $actions = ActivityAction::LABELS;
 
-        return view('activity-logs.index', compact('logs', 'companies', 'users', 'actions', 'scopeCompanyId'));
+        return view('activity-logs.index', compact('logs', 'companies', 'users', 'actions', 'scopeCompanyId', 'canViewSensitiveDetails'));
     }
 }

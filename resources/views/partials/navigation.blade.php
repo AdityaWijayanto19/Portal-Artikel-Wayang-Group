@@ -138,7 +138,7 @@
                         </a>
                         <a href="{{ Route::has('wp-sites.visitors') ? route('wp-sites.visitors') : 'javascript:void(0)' }}"
                             class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition {{ $isWpSitesVisitorsActive ? 'bg-brand text-brand-text font-bold shadow-sm' : 'text-brand-sidebar-text/60 hover:bg-white/10 hover:text-brand-sidebar-text' }}">
-                            Visitor Analytics
+                            Analisis Pengunjung
                         </a>
                     </div>
                 </div>
@@ -156,7 +156,7 @@
                         <path d="M13 17V5" />
                         <path d="M8 17v-3" />
                     </svg>
-                    <span>Visitor Analytics</span>
+                    <span>Analisis Pengunjung</span>
                 </a>
             @endhasrole
 

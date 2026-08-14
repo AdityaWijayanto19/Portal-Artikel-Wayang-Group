@@ -51,3 +51,34 @@
     --color-sidebar: #1E1E1E;
     --color-sidebar-text: #FFFFFF;
 }
+
+/* 6. Global Scrollbar Dinamis (mengikuti --color-brand = warna perusahaan aktif)
+   Berlaku untuk semua elemen yang overflow, tanpa perlu class tambahan. */
+@layer base {
+    * {
+        scrollbar-width: thin;
+        scrollbar-color: color-mix(in srgb, var(--color-brand) 60%, transparent) transparent;
+    }
+
+    *::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+
+    *::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    *::-webkit-scrollbar-thumb {
+        background: color-mix(in srgb, var(--color-brand) 60%, transparent);
+        border-radius: 9999px;
+    }
+
+    *::-webkit-scrollbar-thumb:hover {
+        background: var(--color-brand);
+    }
+
+    *::-webkit-scrollbar-corner {
+        background: transparent;
+    }
+}

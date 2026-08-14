@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\ActivityLog;
 use App\Models\Company;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -97,5 +98,41 @@ class ActivityLogAccessTest extends TestCase
             'company_id' => $this->company->id,
             'action' => 'auth.login',
         ]);
+    }
+
+    public function test_super_admin_sees_ip_column_in_activity_log_page(): void
+    {
+        ActivityLog::create([
+            'user_id' => $this->createUser('admin')->id,
+            'company_id' => $this->company->id,
+            'action' => 'article.created',
+            'description' => 'Membuat artikel uji',
+            'ip_address' => '203.0.113.7',
+        ]);
+
+        $this->actingAs($this->createUser('super_admin'))
+            ->get(route('activity-logs.index'))
+            ->assertOk()
+            ->assertSee('IP')
+            ->assertSee('203.0.113.7');
+    }
+
+    public function test_admin_does_not_see_ip_column_in_activity_log_page(): void
+    {
+        $admin = $this->createUser('admin');
+
+        ActivityLog::create([
+            'user_id' => $admin->id,
+            'company_id' => $this->company->id,
+            'action' => 'article.created',
+            'description' => 'Membuat artikel uji',
+            'ip_address' => '203.0.113.7',
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('activity-logs.index'))
+            ->assertOk()
+            ->assertDontSee('IP')
+            ->assertDontSee('203.0.113.7');
     }
 }

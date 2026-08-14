@@ -12,6 +12,10 @@
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
         }
+
+        [x-cloak] {
+            display: none !important;
+        }
     </style>
 </head>
 
@@ -68,10 +72,29 @@
                 </div>
 
                 {{-- Field Password --}}
-                <div class="mb-8 relative">
-                    <input type="password" name="password" id="password" placeholder="Password"
-                        class="w-full py-3 bg-transparent border-b @error('password') border-red-500 @else border-gray-200 @enderror focus:border-[#E9C852] focus:outline-none transition-colors duration-300 placeholder-gray-400 text-gray-700 text-sm"
-                        required>
+                <div class="mb-8">
+                    <div class="relative" x-data="{ showPassword: false }">
+                        <input type="password" name="password" id="password" placeholder="Password"
+                            :type="showPassword ? 'text' : 'password'"
+                            class="w-full py-3 pr-10 bg-transparent border-b @error('password') border-red-500 @else border-gray-200 @enderror focus:border-[#E9C852] focus:outline-none transition-colors duration-300 placeholder-gray-400 text-gray-700 text-sm"
+                            required>
+                        <button type="button" @click="showPassword = !showPassword"
+                            class="absolute right-0 top-1/2 -translate-y-1/2 p-1.5 text-gray-400 hover:text-gray-600 transition-colors focus:outline-none"
+                            :aria-label="showPassword ? 'Sembunyikan password' : 'Tampilkan password'">
+                            <svg x-show="!showPassword" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                                <circle cx="12" cy="12" r="3" />
+                            </svg>
+                            <svg x-show="showPassword" x-cloak class="w-5 h-5" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
+                                <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
+                                <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
+                                <line x1="2" x2="22" y1="2" y2="22" />
+                            </svg>
+                        </button>
+                    </div>
                     {{-- Alert Khusus: Jika Password Salah --}}
                     @error('password')
                         <span class="text-xs text-red-500 mt-1 block font-medium">{{ $message }}</span>

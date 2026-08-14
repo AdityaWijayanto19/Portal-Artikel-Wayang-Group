@@ -3,16 +3,23 @@
 @section('subtitle', 'Jejak aktivitas pengguna di seluruh modul (khusus Super Admin & Admin).')
 
 @section('content')
-    <div class="space-y-6">
-
-        <x-table :headers="[
+    @php
+        $headers = [
             'Waktu',
             'Pengguna',
             'Perusahaan',
             ['label' => 'Aksi', 'align' => 'center'],
             'Keterangan',
-            ['label' => 'IP', 'align' => 'right'],
-        ]" :pagination="$logs->hasPages() ? $logs->appends(request()->query())->links() : null">
+        ];
+
+        if ($canViewSensitiveDetails) {
+            $headers[] = ['label' => 'IP', 'align' => 'right'];
+        }
+    @endphp
+
+    <div class="space-y-6">
+
+        <x-table :headers="$headers" :pagination="$logs->hasPages() ? $logs->appends(request()->query())->links() : null">
 
             <x-slot:filters>
                 @if ($scopeCompanyId === null && $companies->isNotEmpty())
@@ -67,13 +74,15 @@
                     <td class="px-6 py-4 text-slate-700 max-w-md">
                         {{ $log->description }}
                     </td>
-                    <td class="px-6 py-4 text-right font-mono text-slate-500">
-                        {{ $log->ip_address ?? '-' }}
-                    </td>
+                    @if ($canViewSensitiveDetails)
+                        <td class="px-6 py-4 text-right font-mono text-slate-500">
+                            {{ $log->ip_address ?? '-' }}
+                        </td>
+                    @endif
                 </tr>
             @empty
                 <tr>
-                    <td colspan="6" class="px-6 py-12 text-center text-slate-400">
+                    <td colspan="{{ $canViewSensitiveDetails ? 6 : 5 }}" class="px-6 py-12 text-center text-slate-400">
                         Tidak ada data log aktivitas ditemukan.
                     </td>
                 </tr>

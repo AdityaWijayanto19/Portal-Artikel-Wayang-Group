@@ -18,7 +18,7 @@
                     </span>
                 </div>
 
-                <div class="flex-1 flex items-center justify-center bg-slate-50/70 border border-slate-200/80 rounded-xl p-4 min-h-[80px]">
+                <div class="flex-1 flex items-center justify-center p-1">
                     <img src="{{ $site->flag_counter_url }}" alt="Visitor Counter {{ $site->site_name }}"
                         class="max-w-full h-auto" loading="lazy">
                 </div>
