@@ -24,3 +24,9 @@ jobs:
 
             # Tarik update kode terbaru dari GitHub
             git pull origin main
+
+            # Jalankan migrasi dan cache agar tidak ketinggalan
+            php artisan migrate --force
+            php artisan config:cache
+            php artisan view:cache
+            php artisan route:cache
