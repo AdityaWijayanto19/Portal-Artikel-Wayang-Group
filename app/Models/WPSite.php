@@ -29,6 +29,7 @@ class WPSite extends Model
         'site_url',
         'wp_username',
         'wp_app_password',
+        'flag_counter_url',
     ];
 
     protected function casts(): array
@@ -72,5 +73,11 @@ class WPSite extends Model
     public function scopeForCompany(Builder $query, int $companyId): Builder
     {
         return $query->where('company_id', $companyId);
+    }
+
+    public function scopeHasFlagCounter(Builder $query): Builder
+    {
+        return $query->whereNotNull('flag_counter_url')
+            ->where('flag_counter_url', '!=', '');
     }
 }

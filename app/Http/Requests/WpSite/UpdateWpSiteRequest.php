@@ -3,6 +3,7 @@
 namespace App\Http\Requests\WpSite;
 
 use App\Models\Category;
+use App\Models\WPSite;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -10,11 +11,17 @@ class UpdateWpSiteRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->hasAnyRole(['super_admin', 'admin']) ?? false;
+        return $this->user()?->can('update', WPSite::class) ?? false;
     }
 
     protected function prepareForValidation(): void
     {
+        if ($this->has('flag_counter_url') && ! $this->filled('flag_counter_url')) {
+            $this->merge([
+                'flag_counter_url' => null,
+            ]);
+        }
+
         if (
             $this->user() &&
             ! $this->user()->isSuperAdmin() &&
@@ -51,8 +58,7 @@ class UpdateWpSiteRequest extends FormRequest
 
                 Rule::unique('wp_sites', 'site_name')
                     ->where(
-                        fn ($query) =>
-                            $query->where('company_id', $companyId)
+                        fn ($query) => $query->where('company_id', $companyId)
                     )
                     ->ignore($site->id),
             ],
@@ -64,8 +70,7 @@ class UpdateWpSiteRequest extends FormRequest
 
                 Rule::unique('wp_sites', 'site_url')
                     ->where(
-                        fn ($query) =>
-                            $query->where('company_id', $companyId)
+                        fn ($query) => $query->where('company_id', $companyId)
                     )
                     ->ignore($site->id),
             ],
@@ -82,6 +87,12 @@ class UpdateWpSiteRequest extends FormRequest
                 'max:255',
             ],
 
+            'flag_counter_url' => [
+                'nullable',
+                'url',
+                'max:2000',
+            ],
+
             'category_ids' => [
                 'required',
                 'array',
@@ -93,8 +104,7 @@ class UpdateWpSiteRequest extends FormRequest
 
                 Rule::exists('categories', 'id')
                     ->where(
-                        fn ($query) =>
-                            $query->where('company_id', $companyId)
+                        fn ($query) => $query->where('company_id', $companyId)
                     ),
             ],
         ];
@@ -120,6 +130,8 @@ class UpdateWpSiteRequest extends FormRequest
             'wp_app_password.required' => 'Application Password WordPress wajib diisi.',
             'wp_app_password.string' => 'Application Password WordPress harus berupa teks.',
             'wp_app_password.max' => 'Application Password WordPress maksimal 255 karakter.',
+            'flag_counter_url.url' => 'Flag Counter URL harus berupa URL yang valid.',
+            'flag_counter_url.max' => 'Flag Counter URL maksimal 2000 karakter.',
             'category_ids.required' => 'Kategori wajib dipilih.',
             'category_ids.array' => 'Format kategori tidak valid.',
             'category_ids.min' => 'Pilih minimal satu kategori.',

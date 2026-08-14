@@ -10,6 +10,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\TenantController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\WpSiteController;
+use App\Http\Controllers\WPSiteVisitorController;
 use App\Http\Controllers\WpSyncLogController;
 use Illuminate\Support\Facades\Route;
 
@@ -37,6 +38,9 @@ Route::middleware('auth')->group(function () {
     // Profile Saya (self-service)
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
+
+    // Visitor Analytics (Flag Counter) — authorization ditangani oleh WPSitePolicy
+    Route::get('/wp-sites/visitors', [WPSiteVisitorController::class, 'index'])->name('wp-sites.visitors');
 
     Route::middleware(['auth', 'role:super_admin'])->group(function () {
         Route::resource('companies', CompanyController::class);

@@ -2,7 +2,10 @@
 
 namespace App\Services;
 
+use App\Models\Scopes\TenantScope;
+use App\Models\User;
 use App\Models\WPSite;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -10,6 +13,22 @@ use Illuminate\Validation\ValidationException;
 
 class WpSiteService
 {
+    /**
+     * Fetch WP Sites yang memiliki Flag Counter URL berdasarkan kualifikasi Role.
+     */
+    public function getTrackedSitesForUser(User $user): Collection
+    {
+        $query = WPSite::query()->hasFlagCounter();
+
+        // Superadmin: bypass TenantScope untuk akses global seluruh company
+        if ($user->isSuperAdmin()) {
+            $query->withoutGlobalScope(TenantScope::class);
+        }
+
+        // Admin biasa: TenantScope otomatis memfilter berdasarkan company_id
+        return $query->with('company')->get();
+    }
+
     public function create(array $data): WPSite
     {
         return DB::transaction(function () use ($data): WPSite {
@@ -23,6 +42,7 @@ class WpSiteService
                 'site_url' => $data['site_url'],
                 'wp_username' => $data['wp_username'],
                 'wp_app_password' => $data['wp_app_password'],
+                'flag_counter_url' => $data['flag_counter_url'] ?? null,
             ]);
 
             $wpSite->categories()->sync($data['category_ids'] ?? []);
@@ -43,6 +63,7 @@ class WpSiteService
             'site_url' => $data['site_url'],
             'wp_username' => $data['wp_username'],
             'wp_app_password' => $data['wp_app_password'],
+            'flag_counter_url' => $data['flag_counter_url'] ?? null,
         ]);
 
         $wpSite->categories()->sync($data['category_ids'] ?? []);

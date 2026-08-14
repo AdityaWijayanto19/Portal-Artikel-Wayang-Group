@@ -63,6 +63,13 @@
                         value="{{ old('wp_app_password', $wpSite->wp_app_password ?? '') }}" required />
                     <p class="mt-1 text-[11px] text-slate-500">Gunakan <span class="font-semibold">Application Password</span> WordPress (format <code>xxxx xxxx xxxx xxxx xxxx xxxx</code>), bukan password login.</p>
                 </div>
+
+                <div>
+                    <x-input type="url" name="flag_counter_url" label="Flag Counter URL (Opsional)"
+                        placeholder="https://flagcounter.com/..."
+                        value="{{ old('flag_counter_url', $wpSite->flag_counter_url ?? '') }}" />
+                    <p class="mt-1 text-[11px] text-slate-500">URL gambar flag counter (mis. dari FlagCounter.com) untuk menampilkan statistik visitor di halaman Visitor Analytics.</p>
+                </div>
             </div>
 
             <div class="lg:col-span-5 bg-slate-50/70 p-5 rounded-2xl border border-slate-200/80 space-y-4">

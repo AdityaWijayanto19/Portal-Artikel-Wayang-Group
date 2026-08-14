@@ -9,6 +9,14 @@
     $isTenantBrand = !$isSuperAdmin && $activeCompany;
     $brandName = $isTenantBrand ? $activeCompany->name : 'Wayang Group';
     $brandTagline = 'Portal Artikel';
+
+    $isWpSitesSection = request()->routeIs('wp-sites.*');
+    $isWpSitesIndexActive = request()->routeIs('wp-sites.index', 'wp-sites.create', 'wp-sites.edit');
+    $isWpSitesVisitorsActive = request()->routeIs('wp-sites.visitors');
+
+    $isLogSection = request()->routeIs('activity-logs.*', 'wp-sync-logs.*');
+    $isActivityLogsActive = request()->routeIs('activity-logs.*');
+    $isWpSyncLogsActive = request()->routeIs('wp-sync-logs.*');
 @endphp
 
 <div
@@ -103,6 +111,56 @@
             </a>
 
             @hasrole('super_admin|admin')
+                <div class="space-y-1.5" data-accordion>
+                    <button type="button" data-accordion-toggle
+                        class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition {{ $isWpSitesSection ? 'bg-white/10 text-brand-sidebar-text font-semibold' : 'text-brand-sidebar-text/70 hover:bg-white/10 hover:text-brand-sidebar-text' }}">
+                        <svg class="w-4 h-4 opacity-80 shrink-0" xmlns="http://www.w3.org/2000/svg" width="24"
+                            height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-globe-icon lucide-globe">
+                            <circle cx="12" cy="12" r="10" />
+                            <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" />
+                            <path d="M2 12h20" />
+                        </svg>
+                        <span class="flex-1 text-left">Manajemen WP-Sites</span>
+                        <svg data-accordion-chevron class="w-3.5 h-3.5 shrink-0 transition-transform duration-200 {{ $isWpSitesSection ? 'rotate-180' : '' }}"
+                            xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                            class="lucide lucide-chevron-down-icon lucide-chevron-down">
+                            <path d="m6 9 6 6 6-6" />
+                        </svg>
+                    </button>
+
+                    <div data-accordion-menu
+                        class="{{ $isWpSitesSection ? '' : 'hidden' }} ml-3 pl-4 border-l border-white/10 space-y-1">
+                        <a href="{{ Route::has('wp-sites.index') ? route('wp-sites.index') : 'javascript:void(0)' }}"
+                            class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition {{ $isWpSitesIndexActive ? 'bg-brand text-brand-text font-bold shadow-sm' : 'text-brand-sidebar-text/60 hover:bg-white/10 hover:text-brand-sidebar-text' }}">
+                            Situs Wordpress
+                        </a>
+                        <a href="{{ Route::has('wp-sites.visitors') ? route('wp-sites.visitors') : 'javascript:void(0)' }}"
+                            class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition {{ $isWpSitesVisitorsActive ? 'bg-brand text-brand-text font-bold shadow-sm' : 'text-brand-sidebar-text/60 hover:bg-white/10 hover:text-brand-sidebar-text' }}">
+                            Visitor Analytics
+                        </a>
+                    </div>
+                </div>
+            @endhasrole
+
+            <!-- Author: akses langsung ke Visitor Analytics tanpa dropdown -->
+            @hasrole('author')
+                <a href="{{ Route::has('wp-sites.visitors') ? route('wp-sites.visitors') : 'javascript:void(0)' }}"
+                    class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition {{ $isWpSitesVisitorsActive ? 'bg-brand text-brand-text font-bold shadow-sm' : 'text-brand-sidebar-text/70 hover:bg-white/10 hover:text-brand-sidebar-text' }}">
+                    <svg class="w-4 h-4 opacity-80 shrink-0" xmlns="http://www.w3.org/2000/svg" width="24"
+                        height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-bar-chart-icon lucide-bar-chart">
+                        <path d="M3 3v16a2 2 0 0 0 2 2h16" />
+                        <path d="M18 17V9" />
+                        <path d="M13 17V5" />
+                        <path d="M8 17v-3" />
+                    </svg>
+                    <span>Visitor Analytics</span>
+                </a>
+            @endhasrole
+
+            @hasrole('super_admin|admin')
                 <a href="{{ Route::has('users.index') ? route('users.index') : 'javascript:void(0)' }}"
                     class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition {{ request()->routeIs('users.*') ? 'bg-brand text-brand-text font-bold shadow-sm' : 'text-brand-sidebar-text/70 hover:bg-white/10 hover:text-brand-sidebar-text' }}">
                     <svg class="w-4 h-4 opacity-80 shrink-0" xmlns="http://www.w3.org/2000/svg" width="24"
@@ -130,45 +188,58 @@
                     </svg>
                     <span>Manajemen Kategori</span>
                 </a>
-                <a href="{{ Route::has('wp-sites.index') ? route('wp-sites.index') : 'javascript:void(0)' }}"
-                    class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition {{ request()->routeIs('wp-sites.*') ? 'bg-brand text-brand-text font-bold shadow-sm' : 'text-brand-sidebar-text/70 hover:bg-white/10 hover:text-brand-sidebar-text' }}">
-                    <svg class="w-4 h-4 opacity-80 shrink-0" xmlns="http://www.w3.org/2000/svg" width="24"
-                        height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                        stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-globe-icon lucide-globe">
-                        <circle cx="12" cy="12" r="10" />
-                        <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" />
-                        <path d="M2 12h20" />
-                    </svg>
-                    <span>Manajemen WP-Sites</span>
-                </a>
+                <div class="space-y-1.5" data-accordion>
+                    <button type="button" data-accordion-toggle
+                        class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition {{ $isLogSection ? 'bg-white/10 text-brand-sidebar-text font-semibold' : 'text-brand-sidebar-text/70 hover:bg-white/10 hover:text-brand-sidebar-text' }}">
+                        <svg class="w-4 h-4 opacity-80 shrink-0" xmlns="http://www.w3.org/2000/svg" width="24"
+                            height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-history-icon lucide-history">
+                            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                            <path d="M3 3v5h5" />
+                            <path d="M12 7v5l4 2" />
+                        </svg>
+                        <span class="flex-1 text-left">Log Aktivitas</span>
+                        <svg data-accordion-chevron class="w-3.5 h-3.5 shrink-0 transition-transform duration-200 {{ $isLogSection ? 'rotate-180' : '' }}"
+                            xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                            class="lucide lucide-chevron-down-icon lucide-chevron-down">
+                            <path d="m6 9 6 6 6-6" />
+                        </svg>
+                    </button>
 
-
-                <a href="{{ Route::has('wp-sync-logs.index') ? route('wp-sync-logs.index') : 'javascript:void(0)' }}"
-                    class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition {{ request()->routeIs('wp-sync-logs.*') ? 'bg-brand text-brand-text font-bold shadow-sm' : 'text-brand-sidebar-text/70 hover:bg-white/10 hover:text-brand-sidebar-text' }}">
-                    <svg class="w-4 h-4 opacity-80 shrink-0" xmlns="http://www.w3.org/2000/svg" width="24"
-                        height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                        stroke-linecap="round" stroke-linejoin="round"
-                        class="lucide lucide-refresh-cw-icon lucide-refresh-cw">
-                        <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
-                        <path d="M21 3v5h-5" />
-                        <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
-                        <path d="M8 16H3v5" />
-                    </svg>
-                    <span>Log Posting Artikel WP</span>
-                </a>
-
-                <a href="{{ Route::has('activity-logs.index') ? route('activity-logs.index') : 'javascript:void(0)' }}"
-                    class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition {{ request()->routeIs('activity-logs.*') ? 'bg-brand text-brand-text font-bold shadow-sm' : 'text-brand-sidebar-text/70 hover:bg-white/10 hover:text-brand-sidebar-text' }}">
-                    <svg class="w-4 h-4 opacity-80 shrink-0" xmlns="http://www.w3.org/2000/svg" width="24"
-                        height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                        stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-history-icon lucide-history">
-                        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-                        <path d="M3 3v5h5" />
-                        <path d="M12 7v5l4 2" />
-                    </svg>
-                    <span>Log Aktivitas</span>
-                </a>
+                    <div data-accordion-menu
+                        class="{{ $isLogSection ? '' : 'hidden' }} ml-3 pl-4 border-l border-white/10 space-y-1">
+                        <a href="{{ Route::has('activity-logs.index') ? route('activity-logs.index') : 'javascript:void(0)' }}"
+                            class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition {{ $isActivityLogsActive ? 'bg-brand text-brand-text font-bold shadow-sm' : 'text-brand-sidebar-text/60 hover:bg-white/10 hover:text-brand-sidebar-text' }}">
+                            Log Aktivitas
+                        </a>
+                        <a href="{{ Route::has('wp-sync-logs.index') ? route('wp-sync-logs.index') : 'javascript:void(0)' }}"
+                            class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition {{ $isWpSyncLogsActive ? 'bg-brand text-brand-text font-bold shadow-sm' : 'text-brand-sidebar-text/60 hover:bg-white/10 hover:text-brand-sidebar-text' }}">
+                            Log Posting Artikel WP
+                        </a>
+                    </div>
+                </div>
             @endhasrole
         </nav>
     </div>
 </div>
+
+@push('scripts')
+    <script>
+        document.querySelectorAll('[data-accordion]').forEach(function (accordion) {
+            var toggle = accordion.querySelector('[data-accordion-toggle]');
+            var menu = accordion.querySelector('[data-accordion-menu]');
+            var chevron = accordion.querySelector('[data-accordion-chevron]');
+
+            if (! toggle || ! menu) return;
+
+            toggle.addEventListener('click', function () {
+                var isHidden = menu.classList.toggle('hidden');
+
+                if (chevron) {
+                    chevron.classList.toggle('rotate-180', ! isHidden);
+                }
+            });
+        });
+    </script>
+@endpush

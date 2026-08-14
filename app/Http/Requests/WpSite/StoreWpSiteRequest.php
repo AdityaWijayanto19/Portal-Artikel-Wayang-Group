@@ -3,6 +3,7 @@
 namespace App\Http\Requests\WpSite;
 
 use App\Models\Category;
+use App\Models\WPSite;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -10,11 +11,17 @@ class StoreWpSiteRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->hasAnyRole(['super_admin', 'admin']) ?? false;
+        return $this->user()?->can('create', WPSite::class) ?? false;
     }
 
     protected function prepareForValidation(): void
     {
+        if ($this->has('flag_counter_url') && ! $this->filled('flag_counter_url')) {
+            $this->merge([
+                'flag_counter_url' => null,
+            ]);
+        }
+
         if ($this->user() && ! $this->user()->isSuperAdmin() && ! $this->filled('company_id')) {
             $this->merge([
                 'company_id' => $this->user()->company_id,
@@ -43,7 +50,7 @@ class StoreWpSiteRequest extends FormRequest
                 'max:255',
                 Rule::unique('wp_sites', 'site_name')
                     ->ignore($siteId)
-                    ->where(fn($query) => $query->where('company_id', $companyId)),
+                    ->where(fn ($query) => $query->where('company_id', $companyId)),
             ],
             'site_url' => [
                 'required',
@@ -51,14 +58,15 @@ class StoreWpSiteRequest extends FormRequest
                 'max:255',
                 Rule::unique('wp_sites', 'site_url')
                     ->ignore($siteId)
-                    ->where(fn($query) => $query->where('company_id', $companyId)),
+                    ->where(fn ($query) => $query->where('company_id', $companyId)),
             ],
             'wp_username' => ['required', 'string', 'max:255'],
             'wp_app_password' => ['required', 'string', 'max:255'],
+            'flag_counter_url' => ['nullable', 'url', 'max:2000'],
             'category_ids' => ['required', 'array', 'min:1'],
             'category_ids.*' => [
                 'integer',
-                Rule::exists('categories', 'id')->where(fn($query) => $query->where('company_id', $companyId)),
+                Rule::exists('categories', 'id')->where(fn ($query) => $query->where('company_id', $companyId)),
             ],
         ];
     }
@@ -74,11 +82,13 @@ class StoreWpSiteRequest extends FormRequest
 
             if (empty($categoryIds)) {
                 $validator->errors()->add('category_ids', 'Pilih minimal satu kategori untuk WP Site ini.');
+
                 return;
             }
 
             if (! $companyId) {
                 $validator->errors()->add('company_id', 'Tidak dapat menentukan perusahaan aktif untuk kategori WP Site ini.');
+
                 return;
             }
 
@@ -113,6 +123,8 @@ class StoreWpSiteRequest extends FormRequest
             'wp_app_password.required' => 'Application Password WordPress wajib diisi.',
             'wp_app_password.string' => 'Application Password WordPress harus berupa teks.',
             'wp_app_password.max' => 'Application Password WordPress maksimal 255 karakter.',
+            'flag_counter_url.url' => 'Flag Counter URL harus berupa URL yang valid.',
+            'flag_counter_url.max' => 'Flag Counter URL maksimal 2000 karakter.',
             'category_ids.required' => 'Kategori wajib dipilih.',
             'category_ids.array' => 'Format kategori tidak valid.',
             'category_ids.min' => 'Pilih minimal satu kategori.',

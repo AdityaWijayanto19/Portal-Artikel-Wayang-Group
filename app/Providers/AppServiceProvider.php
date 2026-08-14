@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
+use Spatie\Permission\Exceptions\PermissionDoesNotExist;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -30,7 +31,12 @@ class AppServiceProvider extends ServiceProvider
                 return true;
             }
 
-            return $user->hasPermissionTo($ability) ? true : null;
+            try {
+                return $user->hasPermissionTo($ability) ? true : null;
+            } catch (PermissionDoesNotExist) {
+                // Permission belum di-seed → biarkan Policy yang memutuskan.
+                return null;
+            }
         });
 
         // Inject $globalCompanies ke navigation (sidebar) DAN header
