@@ -3,7 +3,6 @@
 namespace App\Http\Requests\WpSite;
 
 use App\Models\Category;
-use App\Models\WPSite;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -11,7 +10,7 @@ class UpdateWpSiteRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->can('update', WPSite::class) ?? false;
+        return $this->user()?->can('update', $this->route('wp_site')) ?? false;
     }
 
     protected function prepareForValidation(): void
