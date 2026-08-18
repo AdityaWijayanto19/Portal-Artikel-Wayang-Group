@@ -21,8 +21,7 @@
 
                 <x-filter-select name="status" :options="['success' => 'Sukses', 'failed' => 'Gagal']" all-label="Semua Status" />
 
-                <x-filter-date name="date_from" />
-                <x-filter-date name="date_to" />
+                <x-filter-date-range />
 
                 @if (request()->hasAny(['wp_site_id', 'status', 'date_from', 'date_to']))
                     <a href="{{ route('wp-sync-logs.index') }}"

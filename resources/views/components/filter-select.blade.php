@@ -1,7 +1,7 @@
 @props(['name', 'options' => [], 'allLabel' => 'Semua', 'value' => null])
 
 @php
-    $allOptions = collect(['' => $allLabel])->merge($options);
+    $allOptions = collect(['' => $allLabel])->union($options);
 @endphp
 
 <div class="w-40 shrink-0">

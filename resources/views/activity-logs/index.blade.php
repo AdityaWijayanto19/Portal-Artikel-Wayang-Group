@@ -32,8 +32,7 @@
 
                 <x-filter-select name="action" :options="$actions" all-label="Semua Aksi" />
 
-                <x-filter-date name="date_from" />
-                <x-filter-date name="date_to" />
+                <x-filter-date-range />
 
                 @if (request()->hasAny(['company_id', 'user_id', 'action', 'date_from', 'date_to']))
                     <a href="{{ route('activity-logs.index') }}"

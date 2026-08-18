@@ -55,7 +55,7 @@
     $selectedValue = old($name, $value);
 @endphp
 
-<div class="space-y-1.5 relative w-full" x-data="{
+<div class="relative w-full {{ $label ? 'space-y-1.5' : '' }}" x-data="{
     open: false,
     search: '',
     value: '{{ $selectedValue }}',
