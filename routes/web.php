@@ -35,6 +35,9 @@ Route::middleware('auth')->group(function () {
     // Logout
     Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
+    // Panduan Penulis (Author Guidelines) — halaman statis untuk semua user terautentikasi
+    Route::view('/guidelines', 'guidelines.index')->name('guidelines.index');
+
     // Profile Saya (self-service)
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
