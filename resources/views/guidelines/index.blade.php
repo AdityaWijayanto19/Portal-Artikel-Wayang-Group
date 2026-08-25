@@ -108,7 +108,7 @@
                                 <span class="text-slate-300 font-bold shrink-0">2.2</span> Gambar Unggulan
                             </a></li>
                         <li><a data-toc-link href="#form-seo" class="toc-item toc-sub">
-                                <span class="text-slate-300 font-bold shrink-0">2.3</span> Optimasi SEO &amp; Preview
+                                <span class="text-slate-300 font-bold shrink-0">2.3</span> Optimasi SEO &amp; Readability
                             </a></li>
                         <li><a data-toc-link href="#form-kategori" class="toc-item toc-sub">
                                 <span class="text-slate-300 font-bold shrink-0">2.4</span> Kategori, Tag &amp; Situs

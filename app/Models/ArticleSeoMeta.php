@@ -18,7 +18,7 @@ class ArticleSeoMeta extends Model
         'yoast_metadesc',
         'yoast_focuskw',
         'seo_score',
-        'content_score',
+        'readability_score',
         'reading_time_minutes',
     ];
 
@@ -26,7 +26,7 @@ class ArticleSeoMeta extends Model
     {
         return [
             'seo_score' => 'integer',
-            'content_score' => 'integer',
+            'readability_score' => 'integer',
             'reading_time_minutes' => 'integer',
         ];
     }

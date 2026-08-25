@@ -14,7 +14,7 @@ class UserService
             // 1. Create Base User
             $user = User::create([
                 'name' => $data['name'],
-                'username' => strtolower(trim($data['username'])),
+                'username' => trim($data['username']),
                 'email' => $data['email'],
                 'password' => Hash::make($data['password']),
                 'company_id' => $targetCompanyId, // Primary Company
@@ -35,7 +35,7 @@ class UserService
         return DB::transaction(function () use ($user, $data, $targetCompanyId, $role) {
             $updateData = [
                 'name' => $data['name'],
-                'username' => strtolower(trim($data['username'])),
+                'username' => trim($data['username']),
                 'email' => $data['email'],
             ];
 

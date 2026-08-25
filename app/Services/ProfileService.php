@@ -14,7 +14,7 @@ class ProfileService
 
             if (! $user->isAuthor()) {
                 $updateData['email'] = $data['email'];
-                $updateData['username'] = strtolower(trim($data['username']));
+                $updateData['username'] = trim($data['username']);
             }
 
             if (! empty($data['password'])) {

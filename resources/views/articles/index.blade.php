@@ -38,7 +38,8 @@
 
         <x-table :headers="[
             'Artikel',
-            ['label' => 'Skor SEO', 'align' => 'center'],
+            ['label' => 'SEO', 'align' => 'center'],
+            ['label' => 'Readability', 'align' => 'center'],
             'Publikasi Situs',
             'Status',
             ['label' => 'Aksi', 'align' => 'right'],
@@ -53,8 +54,10 @@
 
             @forelse($articles as $article)
                 @php
-                    $score = (int) ($article->seoMeta->seo_score ?? ($article->seo_score ?? 0));
-                    $scoreColor = $score >= 80 ? 'emerald' : ($score >= 60 ? 'amber' : 'rose');
+                    $seoScore = (int) ($article->seoMeta->seo_score ?? ($article->seo_score ?? 0));
+                    $readabilityScore = (int) ($article->seoMeta->readability_score ?? ($article->readability_score ?? 0));
+                    $seoColor = $seoScore >= 80 ? 'emerald' : ($seoScore >= 60 ? 'amber' : 'rose');
+                    $readabilityColor = $readabilityScore >= 80 ? 'emerald' : ($readabilityScore >= 60 ? 'amber' : 'rose');
                 @endphp
                 <tr class="hover:bg-slate-50/80 transition align-top">
                     <td class="px-4 py-3">
@@ -88,8 +91,14 @@
                     </td>
                     <td class="px-4 py-3 text-center">
                         <span
-                            class="inline-flex items-center justify-center w-9 h-9 rounded-full text-xs font-bold bg-{{ $scoreColor }}-50 text-{{ $scoreColor }}-700 border border-{{ $scoreColor }}-200/70">
-                            {{ $score }}
+                            class="inline-flex items-center justify-center w-9 h-9 rounded-full text-xs font-bold bg-{{ $seoColor }}-50 text-{{ $seoColor }}-700 border border-{{ $seoColor }}-200/70">
+                            {{ $seoScore }}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3 text-center">
+                        <span
+                            class="inline-flex items-center justify-center w-9 h-9 rounded-full text-xs font-bold bg-{{ $readabilityColor }}-50 text-{{ $readabilityColor }}-700 border border-{{ $readabilityColor }}-200/70">
+                            {{ $readabilityScore }}
                         </span>
                     </td>
                     <td class="px-4 py-3">
@@ -183,7 +192,7 @@
                             </a>
 
                             {{-- Tombol Publish --}}
-                            <form x-cloak x-show="articleStatus('{{ $article->id }}') === 'draft' && articleScore('{{ $article->id }}') >= 80"
+                            <form x-cloak x-show="articleStatus('{{ $article->id }}') === 'draft' && articleScore('{{ $article->id }}') >= 80 && articleReadabilityScore('{{ $article->id }}') >= 80"
                                 action="{{ route('articles.publish', $article) }}" method="POST" class="inline-flex">
                                 @csrf
                                 <button type="submit"
@@ -225,7 +234,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="5" class="px-5 py-10 text-center text-slate-400">
+                    <td colspan="6" class="px-5 py-10 text-center text-slate-400">
                         Belum ada artikel. Klik <strong>Tulis Artikel</strong> untuk memulai.
                     </td>
                 </tr>
@@ -270,6 +279,10 @@
 
                 articleScore(id) {
                     return this.article(id).score || 0;
+                },
+
+                articleReadabilityScore(id) {
+                    return this.article(id).readability_score || 0;
                 },
 
                 pub(id, siteId) {

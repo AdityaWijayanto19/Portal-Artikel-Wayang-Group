@@ -7,10 +7,8 @@
     username: '{{ old('username', $user->username ?? '') }}',
     role: '{{ $currentRole }}',
     slugify(text) {
-        return text.toString().toLowerCase()
-            .trim()
-            .replace(/\s+/g, '')
-            .replace(/[^\w\-]+/g, '');
+        return text.toString().trim()
+            .replace(/[^\w\s\-\.]+/g, '');
     },
     onRoleChange(event) {
         const value = event.detail ?? event.target?.value;

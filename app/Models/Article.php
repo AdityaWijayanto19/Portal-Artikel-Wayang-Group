@@ -33,6 +33,7 @@ class Article extends Model
         'featured_image_path',
         'image_alt_text',
         'seo_score',
+        'readability_score',
         'yoast_title',
         'yoast_metadesc',
         'yoast_focuskw',
@@ -43,6 +44,7 @@ class Article extends Model
     {
         return [
             'seo_score' => 'integer',
+            'readability_score' => 'integer',
         ];
     }
 

@@ -108,6 +108,7 @@ class DashboardController extends Controller
                 ->count(),
             'articles_total' => $articles->count(),
             'avg_seo_score' => $articles->count() > 0 ? (int) round($articles->avg('seo_score')) : 0,
+            'avg_readability_score' => $articles->count() > 0 ? (int) round($articles->avg('readability_score')) : 0,
             'draft_total' => $articles->where('status', 'draft')->count(),
             'queued_total' => $articles->where('status', 'queued')->count(),
             'published_total' => $articles->where('status', 'published')->count(),

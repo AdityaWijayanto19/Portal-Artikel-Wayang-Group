@@ -24,6 +24,8 @@
     focuskw: @js(old('yoast_focuskw', $seo->yoast_focuskw ?? '')),
     altText: @js(old('image_alt_text', $isEdit ? $article->image_alt_text : '')),
     status: @js($selectedStatus),
+    articleId: @js($isEdit ? $article->id : null),
+    checkKeywordUrl: @js(route('articles.check-keyword')),
 })" @content-updated="onContentChange($event)"
     class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
@@ -67,7 +69,10 @@
                     <span class="text-xs font-bold text-slate-700 uppercase tracking-wider">Optimasi SEO &amp; Google
                         Preview</span>
                     <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full" :class="scoreBadgeClass">
-                        <span x-text="score"></span>/100
+                        SEO: <span x-text="seoScore"></span>/100
+                    </span>
+                    <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full" :class="readabilityBadgeClass">
+                        Readability: <span x-text="readabilityScore"></span>/100
                     </span>
                 </span>
                 <svg class="w-4 h-4 text-slate-400 transition-transform" :class="seoOpen ? 'rotate-180' : ''"
@@ -79,8 +84,27 @@
             <div x-show="seoOpen" x-collapse class="px-5 pb-5 space-y-5 border-t border-slate-100 pt-5">
 
                 {{-- Field SEO --}}
-                <x-input name="yoast_focuskw" label="Focus Keyphrase" placeholder="mis. jasa logistik jakarta"
-                    x-model="focuskw" @input="recompute()" />
+                <div class="space-y-1.5">
+                    <x-input name="yoast_focuskw" label="Focus Keyphrase" placeholder="mis. jasa logistik jakarta"
+                        x-model="focuskw" @input.debounce.500ms="checkKeywordDuplicate(); recompute()" />
+                    {{-- Warning duplikat keyword --}}
+                    <div x-show="keywordDuplicate" x-cloak
+                        class="flex items-center gap-1.5 text-[11px] text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5">
+                        <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        <span>Keyword ini sudah dipakai artikel lain. Pertimbangkan gunakan keyword unik.</span>
+                    </div>
+                    <div x-show="checkingKeyword" x-cloak
+                        class="flex items-center gap-1.5 text-[11px] text-slate-400">
+                        <svg class="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span>Memeriksa duplikat...</span>
+                    </div>
+                </div>
 
                 <div class="space-y-1.5">
                     <label for="yoast_title" class="block text-xs font-bold text-slate-700 uppercase tracking-wider">SEO
@@ -144,73 +168,187 @@
                     </div>
                 </div>
 
-                {{-- ===== Sub-seksi: Analisis SEO ===== --}}
-                <div class="border border-slate-200 rounded-xl overflow-hidden">
-                    <button type="button" @click="analysisOpen = !analysisOpen"
-                        class="w-full flex items-center justify-between px-4 py-3 text-left bg-slate-50 hover:bg-slate-100 transition">
-                        <span class="flex items-center gap-2">
-                            <span class="text-[11px] font-bold text-slate-600 uppercase tracking-wider">Analisis
-                                SEO</span>
-                            <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full" :class="scoreBadgeClass"
-                                x-text="scoreCategory"></span>
-                        </span>
-                        <svg class="w-4 h-4 text-slate-400 transition-transform"
-                            :class="analysisOpen ? 'rotate-180' : ''" fill="none" stroke="currentColor"
-                            viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M19 9l-7 7-7-7" />
-                        </svg>
-                    </button>
+                {{-- ===== Analysis Panel: Tab + Accordion ===== --}}
+                <div class="space-y-0">
 
-                    <div x-show="analysisOpen" x-collapse class="p-4 space-y-4">
-                        {{-- Gauge + gatekeeper --}}
-                        <div class="flex items-center gap-4">
-                            <div class="relative w-24 h-24 shrink-0">
-                                <svg class="w-24 h-24 -rotate-90" viewBox="0 0 100 100">
-                                    <circle cx="50" cy="50" r="42" fill="none" stroke="#e2e8f0"
-                                        stroke-width="9" />
-                                    <circle cx="50" cy="50" r="42" fill="none"
-                                        :stroke="scoreStroke" stroke-width="9" stroke-linecap="round"
-                                        :stroke-dasharray="264" :stroke-dashoffset="264 - (264 * score / 100)"
-                                        style="transition: stroke-dashoffset .5s ease, stroke .3s ease" />
+                    {{-- Floating Tab Headers --}}
+                    <div class="flex gap-1">
+                        {{-- Tab SEO --}}
+                        <button type="button" @click="activeTab = 'seo'"
+                            :class="activeTab === 'seo'
+                                ? 'border-slate-200 text-slate-800 bg-white border-t border-l border-r rounded-t-lg shadow-sm z-10'
+                                : 'border-transparent text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-t-lg'"
+                            class="px-4 py-2.5 text-xs font-bold transition flex items-center gap-2 relative">
+                            {{-- SVG Face Icon --}}
+                            <template x-if="seoScore >= 80">
+                                <svg class="w-4 h-4 text-emerald-500 shrink-0" viewBox="0 0 24 24" fill="currentColor" fill-rule="evenodd">
+                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zM8.5 10a1.5 1.5 0 100 3 1.5 1.5 0 000-3zM15.5 10a1.5 1.5 0 100 3 1.5 1.5 0 000-3zM9 14.5c0 0 1 2 3 2s3-2 3-2v1c0 0-1 2-3 2s-3-2-3-2v-1z"/>
                                 </svg>
-                                <div class="absolute inset-0 flex flex-col items-center justify-center">
-                                    <span class="text-xl font-black text-slate-800" x-text="score"></span>
-                                    <span class="text-[9px] text-slate-400 uppercase">dari 100</span>
-                                </div>
-                            </div>
-                            <div class="text-[11px] rounded-lg px-3 py-2 flex-1"
-                                :class="score >= 80 ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'">
-                                <span x-show="score >= 80">Skor memenuhi syarat. Artikel siap dipublikasikan.</span>
-                                <span x-show="score < 80">Skor minimal <strong>80</strong> untuk publish. Perbaiki
-                                    indikator di bawah.</span>
-                            </div>
-                        </div>
-
-                        {{-- Breakdown indikator --}}
-                        <div class="space-y-1 max-h-56 overflow-y-auto pr-1">
-                            <template x-for="item in breakdown" :key="item.label">
-                                <div
-                                    class="flex items-center justify-between text-[11px] py-1 border-b border-slate-50">
-                                    <div class="flex items-center gap-1.5 min-w-0">
-                                        <svg class="w-3 h-3 shrink-0"
-                                            :class="item.score >= item.max ? 'text-emerald-500' : (item.score > 0 ?
-                                                'text-amber-500' : 'text-slate-300')"
-                                            fill="currentColor" viewBox="0 0 20 20">
-                                            <path fill-rule="evenodd"
-                                                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                                                clip-rule="evenodd" />
-                                        </svg>
-                                        <span class="text-slate-600 truncate" x-text="item.label"></span>
-                                    </div>
-                                    <span class="font-semibold text-slate-500 shrink-0 ml-2">
-                                        <span x-text="item.score"></span>/<span x-text="item.max"></span>
-                                    </span>
-                                </div>
                             </template>
+                            <template x-if="seoScore >= 50 && seoScore < 80">
+                                <svg class="w-4 h-4 text-amber-500 shrink-0" viewBox="0 0 24 24" fill="currentColor" fill-rule="evenodd">
+                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zM8.5 10a1.5 1.5 0 100 3 1.5 1.5 0 000-3zM15.5 10a1.5 1.5 0 100 3 1.5 1.5 0 000-3zM9 14.5h6v1.5H9z"/>
+                                </svg>
+                            </template>
+                            <template x-if="seoScore < 50">
+                                <svg class="w-4 h-4 text-rose-500 shrink-0" viewBox="0 0 24 24" fill="currentColor" fill-rule="evenodd">
+                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zM8.5 10a1.5 1.5 0 100 3 1.5 1.5 0 000-3zM15.5 10a1.5 1.5 0 100 3 1.5 1.5 0 000-3zM9 16.5c0 0 1-2 3-2s3 2 3 2v-1c0 0-1-2-3-2s-3 2-3 2v1z"/>
+                                </svg>
+                            </template>
+                            <span>SEO</span>
+                            <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full" :class="scoreBadgeClass"
+                                x-text="seoScoreCategory"></span>
+                        </button>
+
+                        {{-- Tab Readability --}}
+                        <button type="button" @click="activeTab = 'readability'"
+                            :class="activeTab === 'readability'
+                                ? 'border-slate-200 text-slate-800 bg-white border-t border-l border-r rounded-t-lg shadow-sm z-10'
+                                : 'border-transparent text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-t-lg'"
+                            class="px-4 py-2.5 text-xs font-bold transition flex items-center gap-2 relative">
+                            {{-- SVG Face Icon --}}
+                            <template x-if="readabilityScore >= 80">
+                                <svg class="w-4 h-4 text-emerald-500 shrink-0" viewBox="0 0 24 24" fill="currentColor" fill-rule="evenodd">
+                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zM8.5 10a1.5 1.5 0 100 3 1.5 1.5 0 000-3zM15.5 10a1.5 1.5 0 100 3 1.5 1.5 0 000-3zM9 14.5c0 0 1 2 3 2s3-2 3-2v1c0 0-1 2-3 2s-3-2-3-2v-1z"/>
+                                </svg>
+                            </template>
+                            <template x-if="readabilityScore >= 50 && readabilityScore < 80">
+                                <svg class="w-4 h-4 text-amber-500 shrink-0" viewBox="0 0 24 24" fill="currentColor" fill-rule="evenodd">
+                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zM8.5 10a1.5 1.5 0 100 3 1.5 1.5 0 000-3zM15.5 10a1.5 1.5 0 100 3 1.5 1.5 0 000-3zM9 14.5h6v1.5H9z"/>
+                                </svg>
+                            </template>
+                            <template x-if="readabilityScore < 50">
+                                <svg class="w-4 h-4 text-rose-500 shrink-0" viewBox="0 0 24 24" fill="currentColor" fill-rule="evenodd">
+                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zM8.5 10a1.5 1.5 0 100 3 1.5 1.5 0 000-3zM15.5 10a1.5 1.5 0 100 3 1.5 1.5 0 000-3zM9 16.5c0 0 1-2 3-2s3 2 3 2v-1c0 0-1-2-3-2s-3 2-3 2v1z"/>
+                                </svg>
+                            </template>
+                            <span>Readability</span>
+                            <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full" :class="readabilityBadgeClass"
+                                x-text="readabilityScoreCategory"></span>
+                        </button>
+                    </div>
+
+                    {{-- Main Card --}}
+                    <div class="border border-slate-200 rounded-b-lg rounded-tr-lg bg-white shadow-sm overflow-hidden">
+
+                        {{-- Card Header: Active Tab Status + Chevron --}}
+                        <button type="button" @click="analysisOpen = !analysisOpen"
+                            class="w-full flex items-center justify-between px-4 py-3 border-b border-slate-100 hover:bg-slate-50 transition cursor-pointer text-left">
+                            <span class="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
+                                <span x-show="activeTab === 'seo'">
+                                    SEO <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full" :class="scoreBadgeClass" x-text="seoScoreCategory"></span>
+                                </span>
+                                <span x-show="activeTab === 'readability'">
+                                    Readability <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full" :class="readabilityBadgeClass" x-text="readabilityScoreCategory"></span>
+                                </span>
+                            </span>
+                            <svg class="w-4 h-4 text-slate-400 transition-transform"
+                                :class="analysisOpen ? 'rotate-180' : ''" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
+
+                        {{-- Card Body (Accordion) --}}
+                        <div x-show="analysisOpen" x-collapse class="p-4 space-y-4">
+
+                            {{-- SEO Content --}}
+                            <div x-show="activeTab === 'seo'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100">
+                                <div class="flex items-center gap-4">
+                                    <div class="relative w-24 h-24 shrink-0">
+                                        <svg class="w-24 h-24 -rotate-90" viewBox="0 0 100 100">
+                                            <circle cx="50" cy="50" r="42" fill="none" stroke="#e2e8f0"
+                                                stroke-width="9" />
+                                            <circle cx="50" cy="50" r="42" fill="none"
+                                                :stroke="scoreStroke" stroke-width="9" stroke-linecap="round"
+                                                :stroke-dasharray="264" :stroke-dashoffset="264 - (264 * seoScore / 100)"
+                                                style="transition: stroke-dashoffset .5s ease, stroke .3s ease" />
+                                        </svg>
+                                        <div class="absolute inset-0 flex flex-col items-center justify-center">
+                                            <span class="text-xl font-black text-slate-800" x-text="seoScore"></span>
+                                            <span class="text-[9px] text-slate-400 uppercase">dari 100</span>
+                                        </div>
+                                    </div>
+                                    <div class="text-[11px] rounded-lg px-3 py-2 flex-1"
+                                        :class="seoScore >= 80 ? 'bg-emerald-50 text-emerald-700' : (seoScore >= 50 ? 'bg-amber-50 text-amber-700' : 'bg-rose-50 text-rose-700')">
+                                        <span x-show="seoScore >= 80">Skor SEO memenuhi syarat. Artikel siap dipublikasikan.</span>
+                                        <span x-show="seoScore >= 50 && seoScore < 80">Skor SEO perlu perbaikan. Minimal <strong>80</strong> untuk publish.</span>
+                                        <span x-show="seoScore < 50">Skor SEO rendah. Perbaiki indikator di bawah.</span>
+                                    </div>
+                                </div>
+
+                                <div class="mt-4 space-y-1 max-h-56 overflow-y-auto pr-1">
+                                    <template x-for="item in seoBreakdown" :key="item.label">
+                                        <div class="flex items-center justify-between text-[11px] py-1.5 border-b border-slate-50">
+                                            <div class="flex items-center gap-1.5 min-w-0">
+                                                <svg class="w-3 h-3 shrink-0"
+                                                    :class="item.score >= item.max ? 'text-emerald-500' : (item.score > 0 ? 'text-amber-500' : 'text-slate-300')"
+                                                    fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd"
+                                                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                                        clip-rule="evenodd" />
+                                                </svg>
+                                                <span class="text-slate-600 truncate" x-text="item.label"></span>
+                                            </div>
+                                            <span class="font-semibold text-slate-500 shrink-0 ml-2">
+                                                <span x-text="item.score"></span>/<span x-text="item.max"></span>
+                                            </span>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+
+                            {{-- Readability Content --}}
+                            <div x-show="activeTab === 'readability'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100">
+                                <div class="flex items-center gap-4">
+                                    <div class="relative w-24 h-24 shrink-0">
+                                        <svg class="w-24 h-24 -rotate-90" viewBox="0 0 100 100">
+                                            <circle cx="50" cy="50" r="42" fill="none" stroke="#e2e8f0"
+                                                stroke-width="9" />
+                                            <circle cx="50" cy="50" r="42" fill="none"
+                                                :stroke="readabilityStroke" stroke-width="9" stroke-linecap="round"
+                                                :stroke-dasharray="264" :stroke-dashoffset="264 - (264 * readabilityScore / 100)"
+                                                style="transition: stroke-dashoffset .5s ease, stroke .3s ease" />
+                                        </svg>
+                                        <div class="absolute inset-0 flex flex-col items-center justify-center">
+                                            <span class="text-xl font-black text-slate-800" x-text="readabilityScore"></span>
+                                            <span class="text-[9px] text-slate-400 uppercase">dari 100</span>
+                                        </div>
+                                    </div>
+                                    <div class="text-[11px] rounded-lg px-3 py-2 flex-1"
+                                        :class="readabilityScore >= 80 ? 'bg-emerald-50 text-emerald-700' : (readabilityScore >= 50 ? 'bg-amber-50 text-amber-700' : 'bg-rose-50 text-rose-700')">
+                                        <span x-show="readabilityScore >= 80">Skor Readability memenuhi syarat. Artikel mudah dibaca.</span>
+                                        <span x-show="readabilityScore >= 50 && readabilityScore < 80">Skor Readability perlu perbaikan. Minimal <strong>80</strong> untuk publish.</span>
+                                        <span x-show="readabilityScore < 50">Skor Readability rendah. Perbaiki indikator di bawah.</span>
+                                    </div>
+                                </div>
+
+                                <div class="mt-4 space-y-1 max-h-56 overflow-y-auto pr-1">
+                                    <template x-for="item in readabilityBreakdown" :key="item.label">
+                                        <div class="flex items-center justify-between text-[11px] py-1.5 border-b border-slate-50">
+                                            <div class="flex items-center gap-1.5 min-w-0">
+                                                <svg class="w-3 h-3 shrink-0"
+                                                    :class="item.score >= item.max ? 'text-emerald-500' : (item.score > 0 ? 'text-amber-500' : 'text-slate-300')"
+                                                    fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd"
+                                                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                                        clip-rule="evenodd" />
+                                                </svg>
+                                                <span class="text-slate-600 truncate" x-text="item.label"></span>
+                                            </div>
+                                            <span class="font-semibold text-slate-500 shrink-0 ml-2">
+                                                <span x-text="item.score"></span>/<span x-text="item.max"></span>
+                                            </span>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+
                         </div>
                     </div>
                 </div>
+
             </div>
         </div>
     </div>
@@ -247,11 +385,11 @@
                 </div>
             </div>
 
-            {{-- action diturunkan dari status; server tetap gatekeep skor SEO. --}}
+            {{-- action diturunkan dari status; server tetap gatekeep skor SEO + Readability. --}}
             <input type="hidden" name="action" :value="status === 'published' ? 'publish' : 'draft'">
 
-            <button type="submit" :disabled="status === 'published' && score < 80"
-                :class="(status === 'published' && score < 80) ? 'opacity-50 cursor-not-allowed bg-slate-300' : (
+            <button type="submit" :disabled="status === 'published' && !canPublish"
+                :class="(status === 'published' && !canPublish) ? 'opacity-50 cursor-not-allowed bg-slate-300' : (
                     status === 'published' ? 'bg-brand hover:bg-brand/90 text-brand-text' :
                     'bg-slate-800 hover:bg-slate-900 text-white')"
                 class="w-full inline-flex items-center justify-center gap-2 text-xs font-semibold px-4 py-2.5 rounded-xl transition shadow-sm">
@@ -263,11 +401,11 @@
                         x-show="status !== 'published'" />
                 </svg>
                 <span x-show="status !== 'published'">Simpan Draft</span>
-                <span x-show="status === 'published' && score >= 80">Publish ke WordPress</span>
-                <span x-show="status === 'published' && score < 80">Publish (SEO &lt; 80)</span>
+                <span x-show="status === 'published' && canPublish">Publish ke WordPress</span>
+                <span x-show="status === 'published' && !canPublish">Publish (Skor belum 80)</span>
             </button>
             <p class="text-[10px] text-slate-400 text-center leading-relaxed">
-                Publikasi diverifikasi ulang di server. Skor SEO harus &ge; 80.
+                Publikasi diverifikasi ulang di server. SEO & Readability harus &ge; 80.
             </p>
         </div>
 
@@ -382,11 +520,10 @@
     <script>
         /**
          * Mesin SEO realtime — CERMINAN sisi klien dari SeoAnalyzerService (PHP).
-         * Hanya untuk UX; gatekeeper sebenarnya tetap dihitung ulang di server.
+         * Dual scoring: SEO (100) + Readability (100).
          */
         function siteLinker(initial) {
-            // Peta relasi kategori ↔ situs dari data server (tabel wp_site_category).
-            const sitesForCategory = {}; // categoryId → [siteId]
+            const sitesForCategory = {};
             initial.siteCategories.forEach(s => {
                 const siteId = String(s.id);
                 s.categories.forEach(cid => {
@@ -397,7 +534,6 @@
             return {
                 selectedCategories: [],
                 selectedSites: [],
-                // Override manual user terhadap auto-sync (objek dipakai sebagai Set).
                 manualChecked: {},
                 manualUnchecked: {},
 
@@ -411,7 +547,6 @@
                     this.recomputeSites();
                 },
 
-                // Situs yang tersinkron dengan kategori yang sedang tercentang.
                 autoSites() {
                     const set = new Set();
                     this.selectedCategories.forEach(cid => {
@@ -420,8 +555,6 @@
                     return set;
                 },
 
-                // Rumus pilihan akhir:
-                //   (auto dari kategori) + (manual checked) − (manual unchecked)
                 recomputeSites() {
                     const next = new Set();
                     this.autoSites().forEach(sid => next.add(sid));
@@ -440,7 +573,6 @@
                     this.recomputeSites();
                 },
 
-                // Manual toggle langsung pada checkbox situs (tetap fleksibel).
                 onSiteToggle(siteId, checked) {
                     const sid = String(siteId);
                     if (checked) {
@@ -456,8 +588,7 @@
         }
 
         /**
-         * Mesin SEO realtime — CERMINAN sisi klien dari SeoAnalyzerService (PHP).
-         * Hanya untuk UX; gatekeeper sebenarnya tetap dihitung ulang di server.
+         * Article Editor — Dual SEO + Readability scoring engine.
          */
         function articleEditor(initial) {
             return {
@@ -469,11 +600,23 @@
                 focuskw: initial.focuskw || '',
                 altText: initial.altText || '',
                 status: initial.status || 'draft',
-                score: 0,
-                breakdown: [],
+                articleId: initial.articleId || null,
+                checkKeywordUrl: initial.checkKeywordUrl || '',
+
+                // Dual scores
+                seoScore: 0,
+                readabilityScore: 0,
+                seoBreakdown: [],
+                readabilityBreakdown: [],
+
+                // Keyword duplicate check
+                keywordDuplicate: false,
+                checkingKeyword: false,
+
+                // UI state
                 slugEdited: false,
-                // State UI accordion & preview
                 seoOpen: true,
+                activeTab: 'seo',
                 analysisOpen: true,
                 serpDevice: 'desktop',
 
@@ -489,20 +632,21 @@
                 },
 
                 onTitleInput() {
-                    // Auto-slug hanya bila slug belum diedit manual.
                     if (!this.slugEdited) this.slug = this.slugify(this.articleTitle);
                     this.recompute();
                 },
 
                 onContentChange(e) {
-                    // TinyMCE mengirim HTML bersih via event detail.
                     this.content = e.detail ?? this.content;
                     this.recompute();
                 },
 
-                // Judul efektif untuk SEO: pakai SEO Title bila diisi, jika tidak pakai Judul Artikel.
                 get effectiveTitle() {
                     return (this.seoTitle || this.articleTitle || '').trim();
+                },
+
+                get canPublish() {
+                    return this.seoScore >= 80 && this.readabilityScore >= 80;
                 },
 
                 // ===== Google SERP Preview =====
@@ -526,6 +670,68 @@
                     return plain === '' ? 0 : plain.split(' ').length;
                 },
 
+                extractFirstParagraph(content, maxWords = 100) {
+                    const plain = content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+                    const words = plain.split(' ');
+                    return words.slice(0, maxWords).join(' ');
+                },
+
+                extractHeadings(content) {
+                    const headings = [];
+                    const regex = /<h[23][^>]*>(.*?)<\/h[23]>/gi;
+                    let match;
+                    while ((match = regex.exec(content)) !== null) {
+                        const clean = match[1].replace(/<[^>]+>/g, '').trim();
+                        if (clean) headings.push(clean);
+                    }
+                    return headings;
+                },
+
+                splitSentences(content) {
+                    const plain = content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+                    return plain.split(/[.!?]+/).filter(s => s.trim()).map(s => s.trim());
+                },
+
+                getFirstWord(sentence) {
+                    const cleaned = sentence.replace(/[^\w\s]/g, '').trim().toLowerCase();
+                    return cleaned.split(/\s+/)[0] || '';
+                },
+
+                countSyllables(word) {
+                    word = word.toLowerCase().trim();
+                    if (word.length <= 3) return 1;
+                    const matches = word.match(/[aiueo]/g);
+                    return matches ? Math.max(1, matches.length) : 1;
+                },
+
+                // ===== Indonesian Transition Words =====
+                hasTransitionWord(sentence) {
+                    const lower = sentence.toLowerCase();
+                    const words = [
+                        'selain itu', 'namun', 'tetapi', 'akan tetapi', 'meskipun', 'walaupun',
+                        'karena', 'sebab', 'akibatnya', 'oleh karena itu',
+                        'di samping itu', 'furthermore', 'moreover', 'additionally',
+                        'sebaliknya', 'on the other hand', 'however',
+                        'pertama', 'kedua', 'ketiga', 'selanjutnya', 'kemudian', 'akhirnya',
+                        'misalnya', 'contohnya', 'seperti', 'yaitu', 'adalah',
+                        'jika', 'apabila', 'bila', 'seandainya', 'asalkan',
+                        'justru', 'bahkan', 'terutama', 'khususnya', 'utamanya',
+                        'tentu', 'pasti', 'jelas', 'nyatanya', 'faktanya',
+                        'singkatnya', 'intinya', 'pada dasarnya',
+                        'untuk itu', 'dengan demikian',
+                        'dengan kata lain', 'in other words',
+                        'lalu', 'setelah itu', 'sebelumnya',
+                        'di sisi lain',
+                        'maka', 'sehingga', 'hingga', 'sampai',
+                    ];
+                    return words.some(w => lower.includes(w));
+                },
+
+                isPassiveVoice(sentence) {
+                    const lower = sentence.toLowerCase();
+                    return /\bdi\w{2,}/u.test(lower) || /\bter\w{2,}/u.test(lower);
+                },
+
                 recompute() {
                     const title = this.effectiveTitle;
                     const slug = (this.slug || '').trim();
@@ -536,100 +742,236 @@
                     const lc = content.toLowerCase();
                     const words = this.wordCount(content);
 
-                    const parts = [];
+                    // ===== SEO SCORING (13 indikator, total = 100) =====
+                    const seoParts = [];
+
+                    // 1. Keyphrase in Title (12)
+                    let kwInTitleScore = 0;
+                    if (kw) {
+                        const titleLower = title.toLowerCase();
+                        if (titleLower.includes(kw)) {
+                            kwInTitleScore = titleLower.startsWith(kw) ? 12 : 8;
+                        }
+                    }
+                    seoParts.push({ label: 'Keyphrase in Title', max: 12, score: kwInTitleScore });
+
+                    // 2. SEO Title Length (8)
                     const tl = title.length;
-                    parts.push({
-                        label: 'SEO Title',
-                        max: 15,
-                        score: (tl >= 50 && tl <= 60) ? 15 : ((tl >= 35 && tl <= 75) ? 10 : (tl > 0 ? 5 : 0))
+                    seoParts.push({
+                        label: 'SEO Title Length', max: 8,
+                        score: (tl >= 50 && tl <= 60) ? 8 : ((tl >= 35 && tl <= 75) ? 5 : (tl > 0 ? 3 : 0))
                     });
 
-                    const ml = meta.length;
-                    parts.push({
-                        label: 'Meta Description',
-                        max: 10,
-                        score: (ml >= 120 && ml <= 156) ? 10 : ((ml >= 90 && ml <= 180) ? 6 : (ml > 0 ? 3 : 0))
-                    });
-
+                    // 3. Keyphrase in Slug (8)
                     let slugScore = 0;
                     if (slug.length) {
-                        slugScore += (kw && slug.toLowerCase().includes(kw)) ? 6 : 3;
-                        slugScore += /^[a-z0-9\-]+$/.test(slug) ? 4 : 0;
+                        slugScore += (kw && slug.toLowerCase().includes(kw)) ? 5 : 2;
+                        slugScore += /^[a-z0-9\-]+$/.test(slug) ? 3 : 0;
                     }
-                    parts.push({
-                        label: 'URL Slug',
-                        max: 10,
-                        score: Math.min(10, slugScore)
+                    seoParts.push({ label: 'Keyphrase in Slug', max: 8, score: Math.min(8, slugScore) });
+
+                    // 4. Keyphrase in Introduction (10)
+                    const firstPara = this.extractFirstParagraph(content);
+                    seoParts.push({
+                        label: 'Keyphrase in Introduction', max: 10,
+                        score: (kw && firstPara.toLowerCase().includes(kw)) ? 10 : 0
                     });
 
-                    parts.push({
-                        label: 'Focus Keyword',
-                        max: 10,
-                        score: kw !== '' ? 10 : 0
-                    });
-                    parts.push({
-                        label: 'Keyword di Title',
-                        max: 10,
-                        score: (kw && title.toLowerCase().includes(kw)) ? 10 : 0
-                    });
-                    parts.push({
-                        label: 'Keyword di Heading',
-                        max: 10,
-                        score: (kw && lc.includes(kw)) ? 10 : 0
-                    });
-
+                    // 5. Keyphrase Density (8)
                     const kwCount = kw ? (lc.split(kw).length - 1) : 0;
                     const density = (kwCount * 100) / Math.max(1, words);
-                    parts.push({
-                        label: 'Keyword Density',
-                        max: 10,
-                        score: (density >= 1 && density <= 2.5) ? 10 : (density > 0 ? 6 : 0)
+                    seoParts.push({
+                        label: 'Keyphrase Density', max: 8,
+                        score: (density >= 0.5 && density <= 2.5) ? 8 : (density > 0 ? 4 : 0)
                     });
 
-                    const links = [...content.matchAll(/href=["']([^"']+)["']/gi)].map(m => m[1]);
-                    parts.push({
-                        label: 'Internal Link',
-                        max: 10,
-                        score: links.some(u => u.startsWith('/') || !u.startsWith('http')) ? 10 : 0
+                    // 6. Keyphrase in Meta Description (10)
+                    seoParts.push({
+                        label: 'Keyphrase in Meta Description', max: 10,
+                        score: (kw && meta.toLowerCase().includes(kw)) ? 10 : 0
                     });
-                    parts.push({
-                        label: 'External Link',
-                        max: 5,
+
+                    // 7. Meta Description Length (7)
+                    const ml = meta.length;
+                    seoParts.push({
+                        label: 'Meta Description Length', max: 7,
+                        score: (ml >= 120 && ml <= 156) ? 7 : ((ml >= 90 && ml <= 180) ? 4 : (ml > 0 ? 2 : 0))
+                    });
+
+                    // 8. Keyphrase in Subheading (9)
+                    const headings = this.extractHeadings(content);
+                    const kwInHeading = kw && headings.some(h => h.toLowerCase().includes(kw));
+                    seoParts.push({ label: 'Keyphrase in Subheading', max: 9, score: kwInHeading ? 9 : 0 });
+
+                    // 9. Keyphrase in Image Alt (6)
+                    seoParts.push({
+                        label: 'Keyphrase in Image Alt', max: 6,
+                        score: (kw && alt.toLowerCase().includes(kw)) ? 6 : (alt ? 3 : 0)
+                    });
+
+                    // 10. Internal Links (8)
+                    const links = [...content.matchAll(/href=["']([^"']+)["']/gi)].map(m => m[1]);
+                    seoParts.push({
+                        label: 'Internal Links', max: 8,
+                        score: links.some(u => u.startsWith('/') || !u.startsWith('http')) ? 8 : 0
+                    });
+
+                    // 11. Outbound Links (5)
+                    seoParts.push({
+                        label: 'Outbound Links', max: 5,
                         score: links.some(u => u.startsWith('http')) ? 5 : 0
                     });
-                    parts.push({
-                        label: 'Alt Image',
-                        max: 5,
-                        score: alt !== '' ? 5 : 0
-                    });
-                    parts.push({
-                        label: 'Content Length',
-                        max: 10,
-                        score: words >= 800 ? 10 : (words >= 500 ? 6 : (words > 0 ? 3 : 0))
+
+                    // 12. Content Word Count (9)
+                    seoParts.push({
+                        label: 'Content Word Count', max: 9,
+                        score: words >= 900 ? 9 : (words >= 300 ? 5 : (words > 0 ? 2 : 0))
                     });
 
-                    const sentences = Math.max(1, (content.replace(/<[^>]+>/g, ' ').split(/[.!?]+/).filter(s => s.trim())
-                        .length) || 1);
-                    const asl = words / sentences;
-                    parts.push({
-                        label: 'Readability',
-                        max: 5,
-                        score: asl <= 20 ? 5 : (asl <= 28 ? 3 : 1)
+                    // 13. Previously Used Keyphrase (8) — handled server-side, client shows placeholder
+                    seoParts.push({ label: 'Previously Used Keyphrase', max: 8, score: 8 });
+
+                    this.seoBreakdown = seoParts;
+                    this.seoScore = Math.min(100, Math.max(0, seoParts.reduce((a, b) => a + b.score, 0)));
+
+                    // ===== READABILITY SCORING (7 indikator, total = 100) =====
+                    const readParts = [];
+                    const sentences = this.splitSentences(content);
+
+                    // 1. Paragraph Length (15)
+                    const paragraphs = content.split(/<\/p>|<br\s*\/?>|\n{2,}/i).filter(p => p.trim());
+                    const longParagraphs = paragraphs.filter(p => {
+                        const wc = p.replace(/<[^>]+>/g, ' ').split(/\s+/).filter(w => w).length;
+                        return wc > 150;
+                    }).length;
+                    const paraRatio = (longParagraphs * 100) / Math.max(1, paragraphs.length);
+                    readParts.push({
+                        label: 'Paragraph Length', max: 15,
+                        score: paraRatio <= 10 ? 15 : (paraRatio <= 25 ? 10 : (paraRatio <= 50 ? 5 : 0))
                     });
 
-                    this.breakdown = parts;
-                    this.score = Math.min(100, Math.max(0, parts.reduce((a, b) => a + b.score, 0)));
+                    // 2. Sentence Length Ratio (18)
+                    const longSentences = sentences.filter(s => s.split(/\s+/).length > 20).length;
+                    const sentRatio = (longSentences * 100) / Math.max(1, sentences.length);
+                    readParts.push({
+                        label: 'Sentence Length', max: 18,
+                        score: sentRatio <= 25 ? 18 : (sentRatio <= 40 ? 12 : (sentRatio <= 60 ? 6 : 0))
+                    });
+
+                    // 3. Subheading Distribution (15)
+                    const headingCount = headings.length;
+                    const avgWordsBetween = words / Math.max(1, headingCount);
+                    readParts.push({
+                        label: 'Subheading Distribution', max: 15,
+                        score: words <= 300 ? 15 : (avgWordsBetween <= 300 ? 15 : (avgWordsBetween <= 450 ? 10 : (avgWordsBetween <= 600 ? 5 : 0)))
+                    });
+
+                    // 4. Transition Words (15)
+                    const withTransition = sentences.filter(s => this.hasTransitionWord(s)).length;
+                    const transRatio = (withTransition * 100) / Math.max(1, sentences.length);
+                    readParts.push({
+                        label: 'Transition Words', max: 15,
+                        score: transRatio >= 30 ? 15 : (transRatio >= 20 ? 10 : (transRatio >= 10 ? 5 : 0))
+                    });
+
+                    // 5. Passive Voice (12)
+                    const passiveCount = sentences.filter(s => this.isPassiveVoice(s)).length;
+                    const passiveRatio = (passiveCount * 100) / Math.max(1, sentences.length);
+                    readParts.push({
+                        label: 'Passive Voice', max: 12,
+                        score: passiveRatio <= 10 ? 12 : (passiveRatio <= 20 ? 8 : (passiveRatio <= 30 ? 4 : 0))
+                    });
+
+                    // 6. Consecutive Sentences (12)
+                    let maxConsecutive = 1;
+                    let currentConsecutive = 1;
+                    for (let i = 1; i < sentences.length; i++) {
+                        const prevWord = this.getFirstWord(sentences[i - 1]);
+                        const currWord = this.getFirstWord(sentences[i]);
+                        if (prevWord && currWord && prevWord === currWord) {
+                            currentConsecutive++;
+                            maxConsecutive = Math.max(maxConsecutive, currentConsecutive);
+                        } else {
+                            currentConsecutive = 1;
+                        }
+                    }
+                    readParts.push({
+                        label: 'Consecutive Sentences', max: 12,
+                        score: maxConsecutive <= 2 ? 12 : (maxConsecutive <= 3 ? 8 : (maxConsecutive <= 4 ? 4 : 0))
+                    });
+
+                    // 7. Flesch Reading Ease (13)
+                    const sentenceCount = Math.max(1, sentences.length);
+                    let totalSyllables = 0;
+                    sentences.forEach(s => {
+                        s.split(/\s+/).forEach(w => { totalSyllables += this.countSyllables(w); });
+                    });
+                    let flesch = 206.835 - (1.015 * (words / sentenceCount)) - (84.6 * (totalSyllables / Math.max(1, words)));
+                    flesch = Math.max(0, Math.min(100, flesch));
+                    const fleschDiff = Math.abs(flesch - 60.0);
+                    readParts.push({
+                        label: 'Flesch Reading Ease', max: 13,
+                        score: fleschDiff <= 10 ? 13 : (fleschDiff <= 20 ? 10 : (fleschDiff <= 30 ? 7 : 3))
+                    });
+
+                    this.readabilityBreakdown = readParts;
+                    this.readabilityScore = Math.min(100, Math.max(0, readParts.reduce((a, b) => a + b.score, 0)));
                 },
 
-                get scoreCategory() {
-                    return this.score >= 80 ? 'Good' : (this.score >= 60 ? 'Needs Improvement' : 'Poor');
+                async checkKeywordDuplicate() {
+                    const kw = (this.focuskw || '').trim();
+                    if (!kw || !this.checkKeywordUrl) {
+                        this.keywordDuplicate = false;
+                        return;
+                    }
+
+                    this.checkingKeyword = true;
+                    try {
+                        const url = new URL(this.checkKeywordUrl, window.location.origin);
+                        url.searchParams.append('keyword', kw);
+                        if (this.articleId) {
+                            url.searchParams.append('article_id', this.articleId);
+                        }
+
+                        const res = await fetch(url, {
+                            headers: {
+                                'Accept': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') || {}).content || '',
+                            },
+                        });
+
+                        if (res.ok) {
+                            const data = await res.json();
+                            this.keywordDuplicate = data.duplicate || false;
+                        }
+                    } catch (e) {
+                        console.warn('[KeywordCheck] gagal:', e);
+                    } finally {
+                        this.checkingKeyword = false;
+                    }
+                },
+
+                // ===== Score Category Helpers =====
+                get seoScoreCategory() {
+                    return this.seoScore >= 80 ? 'Good' : (this.seoScore >= 60 ? 'Needs Improvement' : 'Poor');
+                },
+                get readabilityScoreCategory() {
+                    return this.readabilityScore >= 80 ? 'Good' : (this.readabilityScore >= 60 ? 'Needs Improvement' : 'Poor');
                 },
                 get scoreStroke() {
-                    return this.score >= 80 ? '#10b981' : (this.score >= 60 ? '#f59e0b' : '#f43f5e');
+                    return this.seoScore >= 80 ? '#10b981' : (this.seoScore >= 60 ? '#f59e0b' : '#f43f5e');
+                },
+                get readabilityStroke() {
+                    return this.readabilityScore >= 80 ? '#10b981' : (this.readabilityScore >= 60 ? '#f59e0b' : '#f43f5e');
                 },
                 get scoreBadgeClass() {
-                    return this.score >= 80 ? 'bg-emerald-50 text-emerald-700' :
-                        (this.score >= 60 ? 'bg-amber-50 text-amber-700' : 'bg-rose-50 text-rose-700');
+                    return this.seoScore >= 80 ? 'bg-emerald-50 text-emerald-700' :
+                        (this.seoScore >= 60 ? 'bg-amber-50 text-amber-700' : 'bg-rose-50 text-rose-700');
+                },
+                get readabilityBadgeClass() {
+                    return this.readabilityScore >= 80 ? 'bg-emerald-50 text-emerald-700' :
+                        (this.readabilityScore >= 60 ? 'bg-amber-50 text-amber-700' : 'bg-rose-50 text-rose-700');
                 },
             };
         }

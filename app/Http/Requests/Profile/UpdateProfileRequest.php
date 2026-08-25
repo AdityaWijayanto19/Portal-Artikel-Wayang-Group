@@ -28,7 +28,7 @@ class UpdateProfileRequest extends FormRequest
                 'string',
                 'max:100',
                 'unique:users,username,' . $userId,
-                'regex:/^[a-zA-Z0-9_\-\.]+$/',
+                'regex:/^[a-zA-Z0-9 ]+$/',
             ];
 
             $rules['email'] = [
@@ -53,7 +53,7 @@ class UpdateProfileRequest extends FormRequest
             'username.string' => 'Username harus berupa teks.',
             'username.max' => 'Username maksimal 100 karakter.',
             'username.unique' => 'Username sudah digunakan.',
-            'username.regex' => 'Username hanya boleh berisi huruf, angka, underscore (_), dash (-), dan titik (.). Tanpa spasi.',
+            'username.regex' => 'Username hanya boleh berisi huruf, angka, dan spasi.',
             'email.required' => 'Email wajib diisi.',
             'email.string' => 'Email harus berupa teks.',
             'email.email' => 'Format email tidak valid.',

@@ -68,7 +68,7 @@ class PublishPoolVerifyTest extends TestCase
             'yoast_metadesc' => 'Deskripsi.',
             'yoast_focuskw' => 'keyword',
             'seo_score' => 90,
-            'content_score' => 80,
+            'readability_score' => 80,
             'reading_time_minutes' => 5,
         ]))
             ->setRelation('categories', new Collection([

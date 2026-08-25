@@ -11,7 +11,7 @@
             <x-slot:icon>
                 <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-newspaper-icon lucide-newspaper"><path d="M15 18h-5"/><path d="M18 14h-8"/><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-4 0v-9a2 2 0 0 1 2-2h2"/><rect width="8" height="4" x="10" y="6" rx="1"/></svg>
             </x-slot:icon>
-            <x-slot:sub>Skor SEO rata-rata: <span class="font-semibold text-brand">{{ $metrics['avg_seo_score'] }}</span></x-slot:sub>
+            <x-slot:sub>SEO: <span class="font-semibold text-brand">{{ $metrics['avg_seo_score'] }}</span> · Readability: <span class="font-semibold text-brand">{{ $metrics['avg_readability_score'] }}</span></x-slot:sub>
         </x-stat-card>
 
         <x-stat-card label="Published (WP)" value="{{ number_format($metrics['published_total']) }}" tone="emerald">

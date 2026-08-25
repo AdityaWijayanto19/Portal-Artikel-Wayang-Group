@@ -47,8 +47,8 @@ class LoginRequest extends FormRequest
         $loginInput = trim((string) $this->input('login'));
         $fieldType  = filter_var($loginInput, FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
 
-        // 1. Cari user berdasarkan Email atau Username
-        $user = User::where($fieldType, $loginInput)->first();
+        // 1. Cari user berdasarkan Email atau Username (case-insensitive)
+        $user = User::whereRaw("LOWER({$fieldType}) = LOWER(?)", [$loginInput])->first();
 
         // JIKA AKUN TIDAK DITEMUKAN: Lempar error global di atas form
         if (! $user) {

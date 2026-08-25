@@ -441,10 +441,13 @@ class WordPressPublisherService
      */
     private function matchAuthorCandidate(string $username, string $email, array $candidates): ?int
     {
+        $normUsername = $this->normalizeForMatch($username);
+        $normEmail = $this->normalizeForMatch($email);
+
         foreach ($candidates as $user) {
-            $matched = ($username !== '' && strtolower((string) ($user['username'] ?? '')) === $username)
-                || ($username !== '' && strtolower((string) ($user['slug'] ?? '')) === $username)
-                || ($email !== '' && strtolower((string) ($user['email'] ?? '')) === $email);
+            $matched = ($normUsername !== '' && $this->normalizeForMatch((string) ($user['username'] ?? '')) === $normUsername)
+                || ($normUsername !== '' && $this->normalizeForMatch((string) ($user['slug'] ?? '')) === $normUsername)
+                || ($normEmail !== '' && $this->normalizeForMatch((string) ($user['email'] ?? '')) === $normEmail);
 
             if ($matched && isset($user['id'])) {
                 return (int) $user['id'];
@@ -452,6 +455,11 @@ class WordPressPublisherService
         }
 
         return null;
+    }
+
+    private function normalizeForMatch(string $str): string
+    {
+        return preg_replace('/[^a-z0-9]/', '', strtolower(trim($str)));
     }
 
     /**
@@ -825,8 +833,8 @@ class WordPressPublisherService
             '_yoast_wpseo_title' => (string) ($seo?->yoast_title ?? $article->yoast_title ?? $article->title),
             '_yoast_wpseo_metadesc' => (string) ($seo?->yoast_metadesc ?? $article->yoast_metadesc ?? ''),
             '_yoast_wpseo_focuskw' => (string) ($seo?->yoast_focuskw ?? $article->yoast_focuskw ?? ''),
-            '_yoast_wpseo_linkdex' => (string) ($analysis['score'] ?? 0),
-            '_yoast_wpseo_content_score' => (string) ($analysis['content_score'] ?? 0),
+            '_yoast_wpseo_linkdex' => (string) ($analysis['seo_score'] ?? 0),
+            '_yoast_wpseo_content_score' => (string) ($analysis['readability_score'] ?? 0),
             '_yoast_wpseo_estimated_reading_time_minutes' => (string) ($analysis['estimated_reading_time_minutes'] ?? 0),
         ];
     }

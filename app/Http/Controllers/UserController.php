@@ -115,7 +115,7 @@ class UserController extends Controller
             $user = User::create([
                 'name' => $request->validated('name'),
                 'email' => $request->validated('email'),
-                'username' => strtolower(trim($request->validated('username'))),
+                'username' => trim($request->validated('username')),
                 'password' => bcrypt($request->validated('password')),
                 'company_id' => $companyId,
             ]);

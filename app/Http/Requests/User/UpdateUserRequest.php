@@ -22,7 +22,7 @@ class UpdateUserRequest extends FormRequest
                 'string',
                 'max:100',
                 'unique:users,username,' . $userId,
-                'regex:/^[a-zA-Z0-9_\-\.]+$/',
+                'regex:/^[a-zA-Z0-9 ]+$/',
             ],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email,' . $userId],
             'password' => ['nullable', 'string', 'min:8'],
@@ -54,7 +54,7 @@ class UpdateUserRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'username.regex' => 'Username WP hanya boleh berisi huruf, angka, underscore (_), dash (-), dan titik (.). Tanpa spasi!',
+            'username.regex' => 'Username hanya boleh berisi huruf, angka, dan spasi.',
         ];
     }
 }

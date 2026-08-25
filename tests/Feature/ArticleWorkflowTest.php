@@ -21,8 +21,12 @@ class ArticleWorkflowTest extends TestCase
             'image_alt_text' => 'Gambar SEO terpusat',
         ]);
 
-        $this->assertGreaterThanOrEqual(0, $result['score']);
-        $this->assertArrayHasKey('breakdown', $result);
+        $this->assertArrayHasKey('seo_score', $result);
+        $this->assertArrayHasKey('readability_score', $result);
+        $this->assertGreaterThanOrEqual(0, $result['seo_score']);
+        $this->assertGreaterThanOrEqual(0, $result['readability_score']);
+        $this->assertArrayHasKey('seo_breakdown', $result);
+        $this->assertArrayHasKey('readability_breakdown', $result);
     }
 
     public function test_homepage_loads_editor_without_database(): void

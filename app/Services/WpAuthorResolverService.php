@@ -25,6 +25,8 @@ class WpAuthorResolverService
     {
         $cleanUsername = strtolower(trim($username));
         $cleanEmail = strtolower(trim($email));
+        $normUsername = $this->normalizeForMatch($username);
+        $normEmail = $this->normalizeForMatch($email);
         $cacheKey = "wp_author_id_site_{$wpSite->id}_{$cleanUsername}_{$cleanEmail}";
 
         return Cache::remember($cacheKey, now()->addDays(7), function () use ($wpSite, $cleanUsername, $cleanEmail): ?int {
@@ -45,9 +47,9 @@ class WpAuthorResolverService
                 }
 
                 foreach ($candidates as $user) {
-                    $matched = ($cleanUsername !== '' && strtolower((string) ($user['username'] ?? '')) === $cleanUsername)
-                        || ($cleanUsername !== '' && strtolower((string) ($user['slug'] ?? '')) === $cleanUsername)
-                        || ($cleanEmail !== '' && strtolower((string) ($user['email'] ?? '')) === $cleanEmail);
+                    $matched = ($normUsername !== '' && $this->normalizeForMatch((string) ($user['username'] ?? '')) === $normUsername)
+                        || ($normUsername !== '' && $this->normalizeForMatch((string) ($user['slug'] ?? '')) === $normUsername)
+                        || ($normEmail !== '' && $this->normalizeForMatch((string) ($user['email'] ?? '')) === $normEmail);
 
                     if ($matched && isset($user['id'])) {
                         Log::info("WP Author resolved: '{$cleanUsername}' on '{$wpSite->site_name}' => ID {$user['id']}");
@@ -64,6 +66,16 @@ class WpAuthorResolverService
 
             return null;
         });
+    }
+
+    /**
+     * Normalisasi string untuk perbandingan author — hapus semua karakter non-alphanumeric
+     * dan convert ke lowercase. Ini menangani perbedaan spasi/huruf besar antara
+     * portal (e.g. "adminarthama") dan WordPress (e.g. "Admin Arthama").
+     */
+    private function normalizeForMatch(string $str): string
+    {
+        return preg_replace('/[^a-z0-9]/', '', strtolower(trim($str)));
     }
 
     /**

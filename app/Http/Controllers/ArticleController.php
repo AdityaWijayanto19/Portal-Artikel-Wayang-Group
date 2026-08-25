@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\Article\StoreArticleRequest;
 use App\Http\Requests\Article\UpdateArticleRequest;
 use App\Models\Article;
+use App\Models\ArticleSeoMeta;
 use App\Models\ArticleSitePublication;
 use App\Models\Category;
 use App\Models\Company;
@@ -59,6 +60,7 @@ class ArticleController extends Controller
                 (string) $article->id => [
                     'status' => $article->status,
                     'score' => (int) ($article->seoMeta->seo_score ?? ($article->seo_score ?? 0)),
+                    'readability_score' => (int) ($article->seoMeta->readability_score ?? ($article->readability_score ?? 0)),
                     'pubs' => $article->sitePublications->mapWithKeys(fn ($pub) => [
                         (string) $pub->wp_site_id => [
                             'status' => $pub->status,
@@ -138,6 +140,39 @@ class ArticleController extends Controller
 
         return response()->json(['articles' => $result])
             ->header('Cache-Control', 'no-store, private');
+    }
+
+    /**
+     * Cek duplikasi focus keyword secara real-time.
+     * Digunakan oleh frontend via AJAX saat user mengisi focus keyword.
+     */
+    public function checkKeywordDuplicate(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'keyword' => ['required', 'string', 'max:255'],
+            'article_id' => ['nullable', 'integer', 'min:1'],
+        ]);
+
+        $companyId = ArticleContext::companyId();
+        abort_if($companyId === null, 403, 'Perusahaan tidak dapat ditentukan.');
+
+        $keyword = trim($validated['keyword']);
+        $articleId = $validated['article_id'] ?? null;
+
+        $query = ArticleSeoMeta::withoutGlobalScope(TenantScope::class)
+            ->where('yoast_focuskw', $keyword)
+            ->whereHas('article', fn ($q) => $q->where('company_id', $companyId));
+
+        if ($articleId !== null) {
+            $query->where('article_id', '!=', $articleId);
+        }
+
+        $exists = $query->exists();
+
+        return response()->json([
+            'duplicate' => $exists,
+            'keyword' => $keyword,
+        ])->header('Cache-Control', 'no-store, private');
     }
 
     public function chooseCompany(Request $request, Company $company): RedirectResponse

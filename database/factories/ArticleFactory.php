@@ -33,6 +33,7 @@ class ArticleFactory extends Factory
             'featured_image_path' => null,
             'image_alt_text' => fake()->sentence(4),
             'seo_score' => fake()->numberBetween(35, 95),
+            'readability_score' => fake()->numberBetween(35, 95),
             'yoast_title' => $title,
             'yoast_metadesc' => fake()->text(140),
             'yoast_focuskw' => $focusKeyword,

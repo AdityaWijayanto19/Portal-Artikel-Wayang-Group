@@ -18,7 +18,7 @@ use Illuminate\Validation\ValidationException;
 class ArticleService
 {
     /**
-     * Skor SEO minimal agar artikel boleh diantrekan / dipublikasikan.
+     * Skor SEO & Readability minimal agar artikel boleh diantrekan / dipublikasikan.
      */
     private const MIN_PUBLISH_SCORE = 80;
 
@@ -49,7 +49,6 @@ class ArticleService
             $article = Article::create([
                 'company_id' => $data['company_id'],
                 'user_id' => $data['user_id'],
-                // Kolom legacy tunggal tetap diisi sebagai mirror (kompat data lama).
                 'category_id' => $data['categories'][0] ?? null,
                 'wp_site_id' => $data['wp_site_ids'][0] ?? null,
                 'title' => $data['title'],
@@ -57,7 +56,8 @@ class ArticleService
                 'content' => $data['content'],
                 'featured_image_path' => $featuredPath,
                 'image_alt_text' => $data['image_alt_text'] ?? null,
-                'seo_score' => $analysis['score'],
+                'seo_score' => $analysis['seo_score'],
+                'readability_score' => $analysis['readability_score'],
                 'yoast_title' => $data['yoast_title'] ?? $data['title'],
                 'yoast_metadesc' => $data['yoast_metadesc'] ?? null,
                 'yoast_focuskw' => $data['yoast_focuskw'] ?? null,
@@ -86,6 +86,7 @@ class ArticleService
     public function update(Article $article, array $data, ?UploadedFile $image = null): Article
     {
         return DB::transaction(function () use ($article, $data, $image): Article {
+            $data['article_id'] = $article->id;
             $analysis = $this->seoAnalyzer->analyze($data);
 
             $payload = [
@@ -95,7 +96,8 @@ class ArticleService
                 'slug' => $data['slug'],
                 'content' => $data['content'],
                 'image_alt_text' => $data['image_alt_text'] ?? null,
-                'seo_score' => $analysis['score'],
+                'seo_score' => $analysis['seo_score'],
+                'readability_score' => $analysis['readability_score'],
                 'yoast_title' => $data['yoast_title'] ?? $data['title'],
                 'yoast_metadesc' => $data['yoast_metadesc'] ?? null,
                 'yoast_focuskw' => $data['yoast_focuskw'] ?? null,
@@ -116,16 +118,22 @@ class ArticleService
     }
 
     /**
-     * Gerbang publikasi: hitung ulang skor SEO server-side sebelum mengantrekan job.
+     * Gerbang publikasi: hitung ulang skor SEO + Readability server-side sebelum mengantrekan job.
      */
     public function publish(Article $article): Article
     {
         $start = microtime(true);
         $analysis = $this->seoAnalyzer->analyze($this->seoInput($article));
 
-        if ($analysis['score'] < self::MIN_PUBLISH_SCORE) {
+        if ($analysis['seo_score'] < self::MIN_PUBLISH_SCORE) {
             throw ValidationException::withMessages([
-                'seo_score' => 'Publish diblokir karena skor SEO harus minimal '.self::MIN_PUBLISH_SCORE.'.',
+                'seo_score' => 'Publish diblokir: skor SEO harus minimal '.self::MIN_PUBLISH_SCORE.'. (skor saat ini: '.$analysis['seo_score'].')',
+            ]);
+        }
+
+        if ($analysis['readability_score'] < self::MIN_PUBLISH_SCORE) {
+            throw ValidationException::withMessages([
+                'readability_score' => 'Publish diblokir: skor Readability harus minimal '.self::MIN_PUBLISH_SCORE.'. (skor saat ini: '.$analysis['readability_score'].')',
             ]);
         }
 
@@ -139,7 +147,8 @@ class ArticleService
 
         DB::transaction(function () use ($article, $analysis, $siteIds): void {
             $article->update([
-                'seo_score' => $analysis['score'],
+                'seo_score' => $analysis['seo_score'],
+                'readability_score' => $analysis['readability_score'],
                 'status' => 'queued',
             ]);
 
@@ -156,6 +165,8 @@ class ArticleService
         Log::info('[ArticleService] publish selesai', [
             'article_id' => $article->id,
             'site_count' => $siteIds->count(),
+            'seo_score' => $analysis['seo_score'],
+            'readability_score' => $analysis['readability_score'],
             'total_ms' => round((microtime(true) - $start) * 1000, 2),
         ]);
 
@@ -404,8 +415,8 @@ class ArticleService
                 'yoast_title' => $data['yoast_title'] ?? $data['title'] ?? null,
                 'yoast_metadesc' => $data['yoast_metadesc'] ?? null,
                 'yoast_focuskw' => $data['yoast_focuskw'] ?? null,
-                'seo_score' => $analysis['score'],
-                'content_score' => $analysis['content_score'] ?? null,
+                'seo_score' => $analysis['seo_score'],
+                'readability_score' => $analysis['readability_score'],
                 'reading_time_minutes' => $analysis['estimated_reading_time_minutes'] ?? null,
             ],
         );
@@ -446,6 +457,7 @@ class ArticleService
             'yoast_title' => $seo?->yoast_title ?? $article->yoast_title,
             'yoast_metadesc' => $seo?->yoast_metadesc ?? $article->yoast_metadesc,
             'yoast_focuskw' => $seo?->yoast_focuskw ?? $article->yoast_focuskw,
+            'article_id' => $article->id,
         ];
     }
 }

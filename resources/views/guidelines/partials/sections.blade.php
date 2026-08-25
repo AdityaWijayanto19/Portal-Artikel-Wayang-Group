@@ -9,8 +9,9 @@
 
     <p class="text-sm text-slate-600 leading-relaxed mb-6">
         Setiap artikel mengikuti alur <strong class="text-slate-900">Draf → Antrean (Publish) → Published /
-        Gagal</strong>. Tombol publikasi hanya aktif bila skor SEO sudah <strong class="text-brand">≥ 80</strong>,
-        dan sistem tetap memverifikasi ulang skor di server sebelum benar-benar mengirim ke WordPress.
+        Gagal</strong>. Tombol publikasi hanya aktif bila skor SEO <strong class="text-brand">≥ 80</strong>
+        <strong>DAN</strong> skor Readability <strong class="text-brand">≥ 80</strong>, dan sistem tetap memverifikasi ulang
+        skor di server sebelum benar-benar mengirim ke WordPress.
     </p>
 
     <ol class="space-y-0">
@@ -63,12 +64,12 @@
         </div>
 
         <div id="form-seo" data-section>
-            <h3 class="text-[13px] font-bold uppercase tracking-wide text-brand mb-3">2.3 · Optimasi SEO &amp; Google Preview</h3>
+            <h3 class="text-[13px] font-bold uppercase tracking-wide text-brand mb-3">2.3 · Optimasi SEO &amp; Readability</h3>
             <p class="text-sm text-slate-600 leading-relaxed mb-4">
-                Skor SEO dihitung <strong class="text-slate-900">realtime</strong> saat mengetik dan
-                <strong class="text-slate-900">diverifikasi ulang di server</strong> saat publish. Skor minimal
-                untuk publikasi adalah <strong class="text-brand">80 dari 100</strong>. Panel <em>Google Preview</em>
-                memperlihatkan tampilan judul, URL, dan deskripsi Anda di hasil pencarian (mode Desktop/Mobile).
+                Skor SEO dan Readability dihitung <strong class="text-slate-900">realtime</strong> saat mengetik dan
+                <strong class="text-slate-900">diverifikasi ulang di server</strong> saat publish. Tab <em>SEO</em>
+                menampilkan 13 indikator optimasi mesin pencari, tab <em>Readability</em> menampilkan 7 indikator
+                keterbacaan konten. Kedua skor harus <strong class="text-brand">≥ 80</strong> untuk publikasi.
             </p>
 
             <div class="grid sm:grid-cols-2 gap-2.5 mb-5">
@@ -90,7 +91,40 @@
                 </div>
             </div>
 
-            <p class="text-xs font-bold text-slate-800 uppercase tracking-wider mb-2">Rincian Skor SEO</p>
+            <p class="text-xs font-bold text-slate-800 uppercase tracking-wider mb-2">Rincian Skor SEO (13 indikator)</p>
+            <div class="overflow-x-auto rounded-lg border border-slate-200 mb-5">
+                <table class="w-full text-left text-[12px]">
+                    <thead>
+                        <tr class="bg-slate-50 text-slate-700 text-[10px] uppercase tracking-wider">
+                            <th class="px-3.5 py-2.5 font-bold">Indikator</th>
+                            <th class="px-3.5 py-2.5 font-bold text-center">Poin</th>
+                            <th class="px-3.5 py-2.5 font-bold">Cara Mendapatkan Skor Penuh</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 text-slate-600">
+                        <tr><td class="px-3.5 py-2.5 text-slate-800">Keyphrase in Title</td><td class="px-3.5 py-2.5 text-center text-brand">12</td><td class="px-3.5 py-2.5">Keyword ada di judul (bonus jika di awal)</td></tr>
+                        <tr><td class="px-3.5 py-2.5 text-slate-800">SEO Title Length</td><td class="px-3.5 py-2.5 text-center text-brand">8</td><td class="px-3.5 py-2.5">Panjang 50–60 karakter</td></tr>
+                        <tr><td class="px-3.5 py-2.5 text-slate-800">Keyphrase in Slug</td><td class="px-3.5 py-2.5 text-center text-brand">8</td><td class="px-3.5 py-2.5">Keyword ada di slug + format valid</td></tr>
+                        <tr><td class="px-3.5 py-2.5 text-slate-800">Keyphrase in Introduction</td><td class="px-3.5 py-2.5 text-center text-brand">10</td><td class="px-3.5 py-2.5">Keyword ada di 100 kata pertama</td></tr>
+                        <tr><td class="px-3.5 py-2.5 text-slate-800">Keyphrase Density</td><td class="px-3.5 py-2.5 text-center text-brand">8</td><td class="px-3.5 py-2.5">Kepadatan 0,5–2,5%</td></tr>
+                        <tr><td class="px-3.5 py-2.5 text-slate-800">Keyphrase in Meta Desc</td><td class="px-3.5 py-2.5 text-center text-brand">10</td><td class="px-3.5 py-2.5">Keyword ada di meta description</td></tr>
+                        <tr><td class="px-3.5 py-2.5 text-slate-800">Meta Desc Length</td><td class="px-3.5 py-2.5 text-center text-brand">7</td><td class="px-3.5 py-2.5">Panjang 120–156 karakter</td></tr>
+                        <tr><td class="px-3.5 py-2.5 text-slate-800">Keyphrase in Subheading</td><td class="px-3.5 py-2.5 text-center text-brand">9</td><td class="px-3.5 py-2.5">Keyword ada di H2/H3</td></tr>
+                        <tr><td class="px-3.5 py-2.5 text-slate-800">Keyphrase in Image Alt</td><td class="px-3.5 py-2.5 text-center text-brand">6</td><td class="px-3.5 py-2.5">Keyword ada di alt text gambar</td></tr>
+                        <tr><td class="px-3.5 py-2.5 text-slate-800">Internal Links</td><td class="px-3.5 py-2.5 text-center text-brand">8</td><td class="px-3.5 py-2.5">Minimal 1 tautan internal — format: <code class="text-[10px] bg-slate-100 px-1 rounded">/slug</code>, <code class="text-[10px] bg-slate-100 px-1 rounded">slug</code>, atau <code class="text-[10px] bg-slate-100 px-1 rounded">https://domainmu.com/slug</code></td></tr>
+                        <tr><td class="px-3.5 py-2.5 text-slate-800">Outbound Links</td><td class="px-3.5 py-2.5 text-center text-brand">5</td><td class="px-3.5 py-2.5">Minimal 1 referensi eksternal (http)</td></tr>
+                        <tr><td class="px-3.5 py-2.5 text-slate-800">Content Word Count</td><td class="px-3.5 py-2.5 text-center text-brand">9</td><td class="px-3.5 py-2.5">Minimal 900 kata</td></tr>
+                        <tr><td class="px-3.5 py-2.5 text-slate-800">Previously Used Keyphrase</td><td class="px-3.5 py-2.5 text-center text-brand">8</td><td class="px-3.5 py-2.5">Keyword belum dipakai artikel lain</td></tr>
+                        <tr class="bg-brand/10">
+                            <td class="px-3.5 py-2.5 font-bold text-slate-900">Total Maksimal</td>
+                            <td class="px-3.5 py-2.5 text-center font-black text-brand">100</td>
+                            <td class="px-3.5 py-2.5 text-slate-600">Skor publikasi minimal <strong class="text-brand">80</strong></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <p class="text-xs font-bold text-slate-800 uppercase tracking-wider mb-2">Rincian Skor Readability (7 indikator)</p>
             <div class="overflow-x-auto rounded-lg border border-slate-200">
                 <table class="w-full text-left text-[12px]">
                     <thead>
@@ -101,18 +135,13 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100 text-slate-600">
-                        <tr><td class="px-3.5 py-2.5 text-slate-800">SEO Title</td><td class="px-3.5 py-2.5 text-center text-brand">15</td><td class="px-3.5 py-2.5">Panjang 50–60 karakter</td></tr>
-                        <tr><td class="px-3.5 py-2.5 text-slate-800">Meta Description</td><td class="px-3.5 py-2.5 text-center text-brand">10</td><td class="px-3.5 py-2.5">Panjang 120–156 karakter</td></tr>
-                        <tr><td class="px-3.5 py-2.5 text-slate-800">URL Slug</td><td class="px-3.5 py-2.5 text-center text-brand">10</td><td class="px-3.5 py-2.5">Mengandung keyword + format slug valid</td></tr>
-                        <tr><td class="px-3.5 py-2.5 text-slate-800">Focus Keyword</td><td class="px-3.5 py-2.5 text-center text-brand">10</td><td class="px-3.5 py-2.5">Keyphrase diisi</td></tr>
-                        <tr><td class="px-3.5 py-2.5 text-slate-800">Keyword di Title</td><td class="px-3.5 py-2.5 text-center text-brand">10</td><td class="px-3.5 py-2.5">Keyword muncul di judul / SEO title</td></tr>
-                        <tr><td class="px-3.5 py-2.5 text-slate-800">Keyword di Heading</td><td class="px-3.5 py-2.5 text-center text-brand">10</td><td class="px-3.5 py-2.5">Keyword ada di isi / heading artikel</td></tr>
-                        <tr><td class="px-3.5 py-2.5 text-slate-800">Keyword Density</td><td class="px-3.5 py-2.5 text-center text-brand">10</td><td class="px-3.5 py-2.5">Kepadatan 1–2,5% (wajar, jangan stuffing)</td></tr>
-                        <tr><td class="px-3.5 py-2.5 text-slate-800">Internal Link</td><td class="px-3.5 py-2.5 text-center text-brand">10</td><td class="px-3.5 py-2.5">Minimal 1 tautan internal/relevan di isi</td></tr>
-                        <tr><td class="px-3.5 py-2.5 text-slate-800">External Link</td><td class="px-3.5 py-2.5 text-center text-brand">5</td><td class="px-3.5 py-2.5">Minimal 1 referensi luar (http)</td></tr>
-                        <tr><td class="px-3.5 py-2.5 text-slate-800">Alt Image</td><td class="px-3.5 py-2.5 text-center text-brand">5</td><td class="px-3.5 py-2.5">Alt text gambar unggulan diisi</td></tr>
-                        <tr><td class="px-3.5 py-2.5 text-slate-800">Content Length</td><td class="px-3.5 py-2.5 text-center text-brand">10</td><td class="px-3.5 py-2.5">Minimal 800 kata</td></tr>
-                        <tr><td class="px-3.5 py-2.5 text-slate-800">Readability</td><td class="px-3.5 py-2.5 text-center text-brand">5</td><td class="px-3.5 py-2.5">Rata-rata ≤ 20 kata per kalimat</td></tr>
+                        <tr><td class="px-3.5 py-2.5 text-slate-800">Paragraph Length</td><td class="px-3.5 py-2.5 text-center text-brand">15</td><td class="px-3.5 py-2.5">≤ 10% paragraf lebih dari 150 kata</td></tr>
+                        <tr><td class="px-3.5 py-2.5 text-slate-800">Sentence Length</td><td class="px-3.5 py-2.5 text-center text-brand">18</td><td class="px-3.5 py-2.5">≤ 25% kalimat lebih dari 20 kata</td></tr>
+                        <tr><td class="px-3.5 py-2.5 text-slate-800">Subheading Distribution</td><td class="px-3.5 py-2.5 text-center text-brand">15</td><td class="px-3.5 py-2.5">Rata-rata ≤ 300 kata antar subheading</td></tr>
+                        <tr><td class="px-3.5 py-2.5 text-slate-800">Transition Words</td><td class="px-3.5 py-2.5 text-center text-brand">15</td><td class="px-3.5 py-2.5">≥ 30% kalimat pakai kata penghubung</td></tr>
+                        <tr><td class="px-3.5 py-2.5 text-slate-800">Passive Voice</td><td class="px-3.5 py-2.5 text-center text-brand">12</td><td class="px-3.5 py-2.5">≤ 10% kalimat pasif</td></tr>
+                        <tr><td class="px-3.5 py-2.5 text-slate-800">Consecutive Sentences</td><td class="px-3.5 py-2.5 text-center text-brand">12</td><td class="px-3.5 py-2.5">≤ 2 kalimat berturut awalnya sama</td></tr>
+                        <tr><td class="px-3.5 py-2.5 text-slate-800">Flesch Reading Ease</td><td class="px-3.5 py-2.5 text-center text-brand">13</td><td class="px-3.5 py-2.5">Skor 50–70 (target 60)</td></tr>
                         <tr class="bg-brand/10">
                             <td class="px-3.5 py-2.5 font-bold text-slate-900">Total Maksimal</td>
                             <td class="px-3.5 py-2.5 text-center font-black text-brand">100</td>
@@ -120,6 +149,11 @@
                         </tr>
                     </tbody>
                 </table>
+            </div>
+
+            <div class="mt-4 bg-amber-50 border border-amber-200 rounded-lg p-3.5">
+                <p class="text-xs font-bold text-amber-800 mb-1">⚠ Threshold Ganda</p>
+                <p class="text-[11px] text-amber-700">Artikel hanya bisa dipublikasikan jika <strong>kedua skor</strong> (SEO dan Readability) mencapai minimal <strong>80 dari 100</strong>. Jika salah satu masih di bawah 80, tombol Publish akan nonaktif.</p>
             </div>
         </div>
 
@@ -131,6 +165,10 @@
                 <li><strong class="text-slate-900">Tag</strong> opsional, ketik nama tag lalu tekan <kbd class="text-brand bg-slate-100 px-1 py-0.5 rounded text-[12px]">Enter</kbd> untuk menambah chip. Maksimal 50 karakter per tag.</li>
                 <li><strong class="text-slate-900">Author</strong> default adalah akun Anda. Admin &amp; super admin dapat memilih author lain; untuk role author, author terkunci pada akun yang sedang login.</li>
             </ul>
+            <div class="mt-3 bg-blue-50 border border-blue-200 rounded-lg p-3.5">
+                <p class="text-xs font-bold text-blue-800 mb-1">ℹ️ Format Username WordPress</p>
+                <p class="text-[11px] text-blue-700">Username di portal <strong>harus persis sama</strong> dengan username di WordPress (termasuk spasi dan huruf besar/kecil). Sistem sinkronisasi author menggunakan <strong>exact match</strong> — jika ada perbedaan, author tidak akan terhubung ke akun WordPress yang benar. Contoh: <code class="bg-blue-100 px-1 rounded">Rizki Aulia</code> di portal harus sama persis dengan <code class="bg-blue-100 px-1 rounded">Rizki Aulia</code> di WordPress.</p>
+            </div>
         </div>
     </div>
 </section>
