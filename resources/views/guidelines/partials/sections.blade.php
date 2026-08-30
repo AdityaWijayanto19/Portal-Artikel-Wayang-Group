@@ -240,3 +240,761 @@
         @endforeach
     </div>
 </section>
+
+{{-- ===== 5. PANDUAN DETAIL SEO & READABILITY ===== --}}
+<section id="detail-seo-readability" data-section class="scroll-mt-24 bg-white border border-slate-200 rounded-xl p-6 sm:p-8">
+    <header class="mb-5">
+        <h2 class="flex items-baseline gap-2.5 font-sans text-lg font-bold text-slate-900">
+            <span class="text-sm font-black text-brand">05</span> Panduan Detail SEO &amp; Readability
+        </h2>
+        <p class="mt-1 text-sm text-slate-500">Penjelasan lengkap setiap indikator beserta contoh penulisan yang benar dan salah.</p>
+    </header>
+
+    {{-- ==================== SEO INDICATORS ==================== --}}
+    <div class="mb-8">
+        <h3 id="detail-seo" data-section class="scroll-mt-24 text-sm font-black uppercase tracking-wider text-brand mb-4 flex items-center gap-2">
+            <span class="w-6 h-6 rounded bg-brand/10 border border-brand/30 text-[10px] font-black flex items-center justify-center">SEO</span>
+            SEO Indicators — 13 Indikator (Total 100 Poin)
+        </h3>
+
+        <div class="space-y-6">
+
+            {{-- 5.1 Keyphrase in Title --}}
+            <div id="detail-seo-1" data-section class="scroll-mt-24 bg-slate-50/60 border border-slate-200 rounded-lg p-5">
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="text-xs font-black text-brand bg-brand/10 px-2 py-0.5 rounded">5.1</span>
+                    <h4 class="text-sm font-bold text-slate-900">Keyphrase in Title</h4>
+                    <span class="ml-auto text-xs font-black text-brand">12 poin</span>
+                </div>
+                <p class="text-[13px] text-slate-600 leading-relaxed mb-3">Focus keyphrase harus muncul di SEO Title. Skor penuh jika keyword berada di <strong>awal judul</strong>.</p>
+                <div class="grid sm:grid-cols-2 gap-3 mb-3">
+                    <div>
+                        <p class="text-[11px] font-bold text-emerald-600 uppercase mb-1">✅ Benar (12 poin)</p>
+                        <pre class="bg-emerald-50 border border-emerald-200 rounded p-3 text-[12px] text-slate-700 overflow-x-auto"><code>Artikel SEO Terpusat: Panduan Lengkap untuk Holding
+
+Artikel SEO Terpusat adalah strategi...</code></pre>
+                    </div>
+                    <div>
+                        <p class="text-[11px] font-bold text-rose-600 uppercase mb-1">❌ Salah (0 poin)</p>
+                        <pre class="bg-rose-50 border border-rose-200 rounded p-3 text-[12px] text-slate-700 overflow-x-auto"><code>Panduan Lengkap untuk Perusahaan Holding
+
+Tidak ada keyword "artikel seo terpusat"
+di judul sama sekali.</code></pre>
+                    </div>
+                </div>
+                <div class="bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 text-[12px] text-blue-700">
+                    💡 <strong>Tips:</strong> Tempatkan keyword di awal judul, misalnya "Artikel SEO Terpusat: ..." bukan "...: Artikel SEO Terpusat".
+                </div>
+            </div>
+
+            {{-- 5.2 SEO Title Length --}}
+            <div id="detail-seo-2" data-section class="scroll-mt-24 bg-slate-50/60 border border-slate-200 rounded-lg p-5">
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="text-xs font-black text-brand bg-brand/10 px-2 py-0.5 rounded">5.2</span>
+                    <h4 class="text-sm font-bold text-slate-900">SEO Title Length</h4>
+                    <span class="ml-auto text-xs font-black text-brand">8 poin</span>
+                </div>
+                <p class="text-[13px] text-slate-600 leading-relaxed mb-3">Panjang SEO Title idealnya <strong>50–60 karakter</strong>. Terlalu pendek kurang informatif, terlalu panjang terpotong di hasil pencarian Google.</p>
+                <div class="grid sm:grid-cols-2 gap-3 mb-3">
+                    <div>
+                        <p class="text-[11px] font-bold text-emerald-600 uppercase mb-1">✅ Benar — 50-60 karakter (8 poin)</p>
+                        <pre class="bg-emerald-50 border border-emerald-200 rounded p-3 text-[12px] text-slate-700 overflow-x-auto"><code>Strategi Artikel SEO Terpusat untuk Bisnis
+(43 karakter — masuk range ideal)</code></pre>
+                    </div>
+                    <div>
+                        <p class="text-[11px] font-bold text-rose-600 uppercase mb-1">❌ Salah — Terlalu panjang (3 poin)</p>
+                        <pre class="bg-rose-50 border border-rose-200 rounded p-3 text-[12px] text-slate-700 overflow-x-auto"><code>Ini Adalah Judul Artikel yang Sangat Panjang
+Sekali untuk Optimasi SEO yang Baik (85 karakter)
+
+→ Terpotong di Google, user tidak lihat full title</code></pre>
+                    </div>
+                </div>
+                <div class="bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 text-[12px] text-blue-700">
+                    💡 <strong>Tips:</strong> Gunakan ruler/counter saat menulis judul. Idealnya 50-60 karakter. Hindari judul < 35 karakter.
+                </div>
+            </div>
+
+            {{-- 5.3 Keyphrase in Slug --}}
+            <div id="detail-seo-3" data-section class="scroll-mt-24 bg-slate-50/60 border border-slate-200 rounded-lg p-5">
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="text-xs font-black text-brand bg-brand/10 px-2 py-0.5 rounded">5.3</span>
+                    <h4 class="text-sm font-bold text-slate-900">Keyphrase in Slug</h4>
+                    <span class="ml-auto text-xs font-black text-brand">8 poin</span>
+                </div>
+                <p class="text-[13px] text-slate-600 leading-relaxed mb-3">Slug (URL) harus mengandung focus keyphrase + hanya boleh huruf kecil, angka, dan strip <code>-</code>.</p>
+                <div class="grid sm:grid-cols-2 gap-3 mb-3">
+                    <div>
+                        <p class="text-[11px] font-bold text-emerald-600 uppercase mb-1">✅ Benar (8 poin)</p>
+                        <pre class="bg-emerald-50 border border-emerald-200 rounded p-3 text-[12px] text-slate-700 overflow-x-auto"><code>/artikel-seo-terpusat-panduan
+
+→ Keyword ada di slug
+→ Hanya huruf kecil, angka, strip</code></pre>
+                    </div>
+                    <div>
+                        <p class="text-[11px] font-bold text-rose-600 uppercase mb-1">❌ Salah (2 poin)</p>
+                        <pre class="bg-rose-50 border border-rose-200 rounded p-3 text-[12px] text-slate-700 overflow-x-auto"><code>/panduan_untuk_bisnis_2026
+
+→ Keyword tidak ada di slug
+→ Pakai underscore, bukan strip</code></pre>
+                    </div>
+                </div>
+                <div class="bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 text-[12px] text-blue-700">
+                    💡 <strong>Tips:</strong> Slug ideal: <code>keyword-utama-sub-judul</code>. Hindari spasi, underscore, atau karakter khusus.
+                </div>
+            </div>
+
+            {{-- 5.4 Keyphrase in Introduction --}}
+            <div id="detail-seo-4" data-section class="scroll-mt-24 bg-slate-50/60 border border-slate-200 rounded-lg p-5">
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="text-xs font-black text-brand bg-brand/10 px-2 py-0.5 rounded">5.4</span>
+                    <h4 class="text-sm font-bold text-slate-900">Keyphrase in Introduction</h4>
+                    <span class="ml-auto text-xs font-black text-brand">10 poin</span>
+                </div>
+                <p class="text-[13px] text-slate-600 leading-relaxed mb-3">Focus keyphrase harus muncul di <strong>100 kata pertama</strong> artikel (paragraf pembuka).</p>
+                <div class="grid sm:grid-cols-2 gap-3 mb-3">
+                    <div>
+                        <p class="text-[11px] font-bold text-emerald-600 uppercase mb-1">✅ Benar (10 poin)</p>
+                        <pre class="bg-emerald-50 border border-emerald-200 rounded p-3 text-[12px] text-slate-700 overflow-x-auto"><code><strong>Artikel SEO terpusat</strong> adalah strategi
+pengelolaan konten yang memungkinkan
+holding mengoptimasi seluruh anak
+perusahaan secara seragam...
+
+→ Keyword muncul di kalimat pertama</code></pre>
+                    </div>
+                    <div>
+                        <p class="text-[11px] font-bold text-rose-600 uppercase mb-1">❌ Salah (0 poin)</p>
+                        <pre class="bg-rose-50 border border-rose-200 rounded p-3 text-[12px] text-slate-700 overflow-x-auto"><code>Dalam dunia digital marketing, ada banyak
+strategi yang bisa digunakan untuk
+ meningkatkan visibilitas online. Salah
+satunya adalah dengan menggunakan...
+
+→ Keyword baru muncul di paragraf ke-5</code></pre>
+                    </div>
+                </div>
+                <div class="bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 text-[12px] text-blue-700">
+                    💡 <strong>Tips:</strong> Sebutkan keyword di kalimat pertama atau kedua paragraf pembuka. Jangan "basa-basi" terlalu panjang sebelum masuk topik.
+                </div>
+            </div>
+
+            {{-- 5.5 Keyphrase Density --}}
+            <div id="detail-seo-5" data-section class="scroll-mt-24 bg-slate-50/60 border border-slate-200 rounded-lg p-5">
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="text-xs font-black text-brand bg-brand/10 px-2 py-0.5 rounded">5.5</span>
+                    <h4 class="text-sm font-bold text-slate-900">Keyphrase Density</h4>
+                    <span class="ml-auto text-xs font-black text-brand">8 poin</span>
+                </div>
+                <p class="text-[13px] text-slate-600 leading-relaxed mb-3">Kepadatan keyword idealnya <strong>0.5–2.5%</strong> dari total kata. Terlalu rendah = tidak relevan. Terlalu tinggi = keyword stuffing.</p>
+                <div class="grid sm:grid-cols-2 gap-3 mb-3">
+                    <div>
+                        <p class="text-[11px] font-bold text-emerald-600 uppercase mb-1">✅ Benar — 1.2% density (8 poin)</p>
+                        <pre class="bg-emerald-50 border border-emerald-200 rounded p-3 text-[12px] text-slate-700 overflow-x-auto"><code>Konten 1000 kata, keyword muncul 12 kali
+= 1.2% density (ideal)
+
+Contoh penyebaran natural:
+- Paragraf 1: 1x
+- Paragraf 2: 2x
+- Subheading: 1x
+- Paragraf 3-5: masing-masing 2x
+- Kesimpulan: 2x</code></pre>
+                    </div>
+                    <div>
+                        <p class="text-[11px] font-bold text-rose-600 uppercase mb-1">❌ Salah — 3.5% density (4 poin)</p>
+                        <pre class="bg-rose-50 border border-rose-200 rounded p-3 text-[12px] text-slate-700 overflow-x-auto"><code>Konten 1000 kata, keyword muncul 35 kali
+= 3.5% density (keyword stuffing!)
+
+Ini adalah artikel tentang artikel SEO terpusat.
+Artikel SEO terpusat sangat penting. Dengan
+artikel SEO terpusat, kita bisa...
+
+→ Google menganggap ini spam/keyword stuffing</code></pre>
+                    </div>
+                </div>
+                <div class="bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 text-[12px] text-blue-700">
+                    💡 <strong>Tips:</strong> Gunakan sinonim dan variasi. Contoh: "artikel SEO terpusat", "strategi SEO terpusat", "konten SEO terpusat" — tidak harus persis sama setiap kali.
+                </div>
+            </div>
+
+            {{-- 5.6 Keyphrase in Meta Description --}}
+            <div id="detail-seo-6" data-section class="scroll-mt-24 bg-slate-50/60 border border-slate-200 rounded-lg p-5">
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="text-xs font-black text-brand bg-brand/10 px-2 py-0.5 rounded">5.6</span>
+                    <h4 class="text-sm font-bold text-slate-900">Keyphrase in Meta Description</h4>
+                    <span class="ml-auto text-xs font-black text-brand">10 poin</span>
+                </div>
+                <p class="text-[13px] text-slate-600 leading-relaxed mb-3">Focus keyphrase harus muncul di meta description yang muncul di hasil pencarian Google.</p>
+                <div class="grid sm:grid-cols-2 gap-3 mb-3">
+                    <div>
+                        <p class="text-[11px] font-bold text-emerald-600 uppercase mb-1">✅ Benar (10 poin)</p>
+                        <pre class="bg-emerald-50 border border-emerald-200 rounded p-3 text-[12px] text-slate-700 overflow-x-auto"><code>Pelajari strategi <strong>artikel SEO terpusat</strong>
+untuk mengelola konten lintas holding
+dengan kualitas terukur.
+
+→ Keyword ada di meta description</code></pre>
+                    </div>
+                    <div>
+                        <p class="text-[11px] font-bold text-rose-600 uppercase mb-1">❌ Salah (0 poin)</p>
+                        <pre class="bg-rose-50 border border-rose-200 rounded p-3 text-[12px] text-slate-700 overflow-x-auto"><code>Panduan lengkap untuk mengelola konten
+digital perusahaan Anda dengan baik dan
+benar.
+
+→ Keyword "artikel SEO terpusat" tidak ada</code></pre>
+                    </div>
+                </div>
+                <div class="bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 text-[12px] text-blue-700">
+                    💡 <strong>Tips:</strong> Meta description adalah "iklan gratis" di Google. Buat menarik + mengandung keyword agar user mau klik.
+                </div>
+            </div>
+
+            {{-- 5.7 Meta Description Length --}}
+            <div id="detail-seo-7" data-section class="scroll-mt-24 bg-slate-50/60 border border-slate-200 rounded-lg p-5">
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="text-xs font-black text-brand bg-brand/10 px-2 py-0.5 rounded">5.7</span>
+                    <h4 class="text-sm font-bold text-slate-900">Meta Description Length</h4>
+                    <span class="ml-auto text-xs font-black text-brand">7 poin</span>
+                </div>
+                <p class="text-[13px] text-slate-600 leading-relaxed mb-3">Panjang meta description idealnya <strong>120–156 karakter</strong>. Google memotong jika terlalu panjang.</p>
+                <div class="grid sm:grid-cols-2 gap-3 mb-3">
+                    <div>
+                        <p class="text-[11px] font-bold text-emerald-600 uppercase mb-1">✅ Benar — 130 karakter (7 poin)</p>
+                        <pre class="bg-emerald-50 border border-emerald-200 rounded p-3 text-[12px] text-slate-700 overflow-x-auto"><code>Pelajari strategi artikel SEO terpusat
+untuk mengelola konten lintas holding
+dengan kualitas terukur.
+(130 karakter — ideal!)</code></pre>
+                    </div>
+                    <div>
+                        <p class="text-[11px] font-bold text-rose-600 uppercase mb-1">❌ Salah — Terlalu pendek (2 poin)</p>
+                        <pre class="bg-rose-50 border border-rose-200 rounded p-3 text-[12px] text-slate-700 overflow-x-auto"><code>Panduan SEO.
+(11 karakter — terlalu pendek)
+
+Atau terlalu panjang:
+Panduan lengkap tentang bagaimana cara
+mengelola artikel SEO terpusat untuk
+perusahaan holding dengan anak
+perusahaan yang banyak...
+(180+ karakter — terpotong di Google)</code></pre>
+                    </div>
+                </div>
+                <div class="bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 text-[12px] text-blue-700">
+                    💡 <strong>Tips:</strong> Tulis meta description seperti copywriting iklan: ringkas, informatif, mengundang klik. Ideal 120-156 karakter.
+                </div>
+            </div>
+
+            {{-- 5.8 Keyphrase in Subheading --}}
+            <div id="detail-seo-8" data-section class="scroll-mt-24 bg-slate-50/60 border border-slate-200 rounded-lg p-5">
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="text-xs font-black text-brand bg-brand/10 px-2 py-0.5 rounded">5.8</span>
+                    <h4 class="text-sm font-bold text-slate-900">Keyphrase in Subheading</h4>
+                    <span class="ml-auto text-xs font-black text-brand">9 poin</span>
+                </div>
+                <p class="text-[13px] text-slate-600 leading-relaxed mb-3">Focus keyphrase harus muncul di minimal 1 tag <strong>H2 atau H3</strong> dalam konten.</p>
+                <div class="grid sm:grid-cols-2 gap-3 mb-3">
+                    <div>
+                        <p class="text-[11px] font-bold text-emerald-600 uppercase mb-1">✅ Benar (9 poin)</p>
+                        <pre class="bg-emerald-50 border border-emerald-200 rounded p-3 text-[12px] text-slate-700 overflow-x-auto"><code>&lt;h2&gt;Strategi &lt;strong&gt;Artikel SEO Terpusat&lt;/strong&gt;
+dalam Praktik&lt;/h2&gt;
+
+&lt;h3&gt;Manfaat &lt;strong&gt;Artikel SEO Terpusat&lt;/strong&gt;
+untuk Bisnis&lt;/h3&gt;
+
+→ Keyword muncul di subheading H2 dan H3</code></pre>
+                    </div>
+                    <div>
+                        <p class="text-[11px] font-bold text-rose-600 uppercase mb-1">❌ Salah (0 poin)</p>
+                        <pre class="bg-rose-50 border border-rose-200 rounded p-3 text-[12px] text-slate-700 overflow-x-auto"><code>&lt;h2&gt;Strategi dalam Praktik&lt;/h2&gt;
+
+&lt;h3&gt;Manfaat untuk Bisnis&lt;/h3&gt;
+
+→ Keyword tidak ada di subheading manapun</code></pre>
+                    </div>
+                </div>
+                <div class="bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 text-[12px] text-blue-700">
+                    💡 <strong>Tips:</strong> Masukkan keyword di minimal 1 subheading H2. Bisa juga di H3 untuk poin tambahan.
+                </div>
+            </div>
+
+            {{-- 5.9 Keyphrase in Image Alt --}}
+            <div id="detail-seo-9" data-section class="scroll-mt-24 bg-slate-50/60 border border-slate-200 rounded-lg p-5">
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="text-xs font-black text-brand bg-brand/10 px-2 py-0.5 rounded">5.9</span>
+                    <h4 class="text-sm font-bold text-slate-900">Keyphrase in Image Alt</h4>
+                    <span class="ml-auto text-xs font-black text-brand">6 poin</span>
+                </div>
+                <p class="text-[13px] text-slate-600 leading-relaxed mb-3">Alt text gambar harus mengandung focus keyphrase + bersifat deskriptif. Alt text kosong = 0 poin.</p>
+                <div class="grid sm:grid-cols-2 gap-3 mb-3">
+                    <div>
+                        <p class="text-[11px] font-bold text-emerald-600 uppercase mb-1">✅ Benar (6 poin)</p>
+                        <pre class="bg-emerald-50 border border-emerald-200 rounded p-3 text-[12px] text-slate-700 overflow-x-auto"><code>&lt;img alt="Ilustrasi artikel SEO terpusat
+untuk strategi konten holding"
+src="gambar.jpg"&gt;
+
+→ Alt text deskriptif + mengandung keyword</code></pre>
+                    </div>
+                    <div>
+                        <p class="text-[11px] font-bold text-rose-600 uppercase mb-1">❌ Salah (0 poin)</p>
+                        <pre class="bg-rose-50 border border-rose-200 rounded p-3 text-[12px] text-slate-700 overflow-x-auto"><code>&lt;img alt="" src="gambar.jpg"&gt;
+→ Alt text kosong (0 poin)
+
+Atau:
+&lt;img src="gambar.jpg"&gt;
+→ Tidak ada alt text sama sekali (0 poin)</code></pre>
+                    </div>
+                </div>
+                <div class="bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 text-[12px] text-blue-700">
+                    💡 <strong>Tips:</strong> Alt text harus deskriptif tentang gambar, bukan hanya keyword. Contoh: "Tim editorial sedang menyusun artikel SEO terpusat".
+                </div>
+            </div>
+
+            {{-- 5.10 Internal Links --}}
+            <div id="detail-seo-10" data-section class="scroll-mt-24 bg-slate-50/60 border border-slate-200 rounded-lg p-5">
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="text-xs font-black text-brand bg-brand/10 px-2 py-0.5 rounded">5.10</span>
+                    <h4 class="text-sm font-bold text-slate-900">Internal Links</h4>
+                    <span class="ml-auto text-xs font-black text-brand">8 poin</span>
+                </div>
+                <p class="text-[13px] text-slate-600 leading-relaxed mb-3">Artikel harus memiliki minimal <strong>1 tautan internal</strong> (link ke halaman lain di situs yang sama).</p>
+                <div class="grid sm:grid-cols-2 gap-3 mb-3">
+                    <div>
+                        <p class="text-[11px] font-bold text-emerald-600 uppercase mb-1">✅ Benar (8 poin)</p>
+                        <pre class="bg-emerald-50 border border-emerald-200 rounded p-3 text-[12px] text-slate-700 overflow-x-auto"><code>&lt;a href="/blog/strategi-seo"&gt;
+  Baca juga: Strategi SEO
+&lt;/a&gt;
+
+Atau:
+&lt;a href="https://domainmu.com/kategori/seo"&gt;
+  Artikel terkait
+&lt;/a&gt;
+
+→ Link ke halaman sendiri (internal)</code></pre>
+                    </div>
+                    <div>
+                        <p class="text-[11px] font-bold text-rose-600 uppercase mb-1">❌ Salah (0 poin)</p>
+                        <pre class="bg-rose-50 border border-rose-200 rounded p-3 text-[12px] text-slate-700 overflow-x-auto"><code>Tidak ada tautan internal sama sekali
+dalam artikel.
+
+Atau semua link hanya ke situs eksternal:
+&lt;a href="https://google.com"&gt;Google&lt;/a&gt;
+&lt;a href="https://wikipedia.org"&gt;Wiki&lt;/a&gt;
+
+→ Tidak ada internal link</code></pre>
+                    </div>
+                </div>
+                <div class="bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 text-[12px] text-blue-700">
+                    💡 <strong>Tips:</strong> Link ke artikel lain di situs yang sama. Misal: "Baca juga panduan SEO lainnya di /blog/panduan-seo". Format: <code>/slug</code> atau <code>https://domainmu.com/slug</code>.
+                </div>
+            </div>
+
+            {{-- 5.11 Outbound Links --}}
+            <div id="detail-seo-11" data-section class="scroll-mt-24 bg-slate-50/60 border border-slate-200 rounded-lg p-5">
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="text-xs font-black text-brand bg-brand/10 px-2 py-0.5 rounded">5.11</span>
+                    <h4 class="text-sm font-bold text-slate-900">Outbound Links</h4>
+                    <span class="ml-auto text-xs font-black text-brand">5 poin</span>
+                </div>
+                <p class="text-[13px] text-slate-600 leading-relaxed mb-3">Artikel harus memiliki minimal <strong>1 tautan eksternal</strong> (link ke situs lain) sebagai referensi.</p>
+                <div class="grid sm:grid-cols-2 gap-3 mb-3">
+                    <div>
+                        <p class="text-[11px] font-bold text-emerald-600 uppercase mb-1">✅ Benar (5 poin)</p>
+                        <pre class="bg-emerald-50 border border-emerald-200 rounded p-3 text-[12px] text-slate-700 overflow-x-auto"><code>&lt;a href="https://developers.google.com/search"&gt;
+  Google Search Central
+&lt;/a&gt;
+
+→ Link ke situs eksternal (http/https)</code></pre>
+                    </div>
+                    <div>
+                        <p class="text-[11px] font-bold text-rose-600 uppercase mb-1">❌ Salah (0 poin)</p>
+                        <pre class="bg-rose-50 border border-rose-200 rounded p-3 text-[12px] text-slate-700 overflow-x-auto"><code>Tidak ada tautan eksternal sama sekali
+dalam artikel.
+
+→ Tidak ada referensi dari situs lain</code></pre>
+                    </div>
+                </div>
+                <div class="bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 text-[12px] text-blue-700">
+                    💡 <strong>Tips:</strong> Link ke sumber terpercaya: Google Documentation, Wikipedia, atau situs otoritatif lainnya. Relevan dengan topik artikel.
+                </div>
+            </div>
+
+            {{-- 5.12 Content Word Count --}}
+            <div id="detail-seo-12" data-section class="scroll-mt-24 bg-slate-50/60 border border-slate-200 rounded-lg p-5">
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="text-xs font-black text-brand bg-brand/10 px-2 py-0.5 rounded">5.12</span>
+                    <h4 class="text-sm font-bold text-slate-900">Content Word Count</h4>
+                    <span class="ml-auto text-xs font-black text-brand">9 poin</span>
+                </div>
+                <p class="text-[13px] text-slate-600 leading-relaxed mb-3">Jumlah kata konten minimal <strong>900 kata</strong> untuk skor penuh. Konten pendek dianggap kurang komprehensif.</p>
+                <div class="grid sm:grid-cols-2 gap-3 mb-3">
+                    <div>
+                        <p class="text-[11px] font-bold text-emerald-600 uppercase mb-1">✅ Benar — 1200 kata (9 poin)</p>
+                        <pre class="bg-emerald-50 border border-emerald-200 rounded p-3 text-[12px] text-slate-700 overflow-x-auto"><code>Artikel dengan 1200+ kata
+
+~ 15-20 paragraf
+~ 3-5 subheading
+~ Waktu baca: 6 menit
+
+→ Konten komprehensif dan mendalam</code></pre>
+                    </div>
+                    <div>
+                        <p class="text-[11px] font-bold text-rose-600 uppercase mb-1">❌ Salah — 150 kata (2 poin)</p>
+                        <pre class="bg-rose-50 border border-rose-200 rounded p-3 text-[12px] text-slate-700 overflow-x-auto"><code>Artikel hanya 150 kata
+
+~ 2-3 paragraf saja
+~ Tidak ada subheading
+~ Waktu baca: 30 detik
+
+→ Terlalu pendek, tidak komprehensif</code></pre>
+                    </div>
+                </div>
+                <div class="bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 text-[12px] text-blue-700">
+                    💡 <strong>Tips:</strong> Target minimal 900 kata, idealnya 1200-1500 kata untuk artikel komprehensif. Gunakan outline sebelum menulis agar konten terstruktur dan cukup panjang.
+                </div>
+            </div>
+
+            {{-- 5.13 Previously Used Keyphrase --}}
+            <div id="detail-seo-13" data-section class="scroll-mt-24 bg-slate-50/60 border border-slate-200 rounded-lg p-5">
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="text-xs font-black text-brand bg-brand/10 px-2 py-0.5 rounded">5.13</span>
+                    <h4 class="text-sm font-bold text-slate-900">Previously Used Keyphrase</h4>
+                    <span class="ml-auto text-xs font-black text-brand">8 poin</span>
+                </div>
+                <p class="text-[13px] text-slate-600 leading-relaxed mb-3">Focus keyphrase harus <strong>unik</strong> — belum pernah dipakai di artikel lain dalam sistem.</p>
+                <div class="grid sm:grid-cols-2 gap-3 mb-3">
+                    <div>
+                        <p class="text-[11px] font-bold text-emerald-600 uppercase mb-1">✅ Benar — Keyword unik (8 poin)</p>
+                        <pre class="bg-emerald-50 border border-emerald-200 rounded p-3 text-[12px] text-slate-700 overflow-x-auto"><code>Focus keyword: "artikel seo terpusat"
+
+→ Belum ada artikel lain dengan keyword ini
+→ Keyword unik untuk artikel ini</code></pre>
+                    </div>
+                    <div>
+                        <p class="text-[11px] font-bold text-rose-600 uppercase mb-1">❌ Salah — Keyword duplikat (0 poin)</p>
+                        <pre class="bg-rose-50 border border-rose-200 rounded p-3 text-[12px] text-slate-700 overflow-x-auto"><code>Focus keyword: "strategi digital marketing"
+
+→ Sudah dipakai 3 artikel lain
+→ Keyword tidak unik, bisa kanibal SEO
+
+Solusi: Gunakan variasi seperti
+"strategi digital marketing b2b" atau
+"tips digital marketing untuk UMKM"</code></pre>
+                    </div>
+                </div>
+                <div class="bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 text-[12px] text-blue-700">
+                    💡 <strong>Tips:</strong> Cek keyword yang sudah dipakai sebelum menulis. Gunakan variasi spesifik: tambahkan lokasi, tahun, atau niche tertentu. Contoh: "strategi SEO 2026 untuk e-commerce".
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    {{-- ==================== READABILITY INDICATORS ==================== --}}
+    <div>
+        <h3 id="detail-readability" data-section class="scroll-mt-24 text-sm font-black uppercase tracking-wider text-brand mb-4 flex items-center gap-2">
+            <span class="w-6 h-6 rounded bg-brand/10 border border-brand/30 text-[10px] font-black flex items-center justify-center">R</span>
+            Readability Indicators — 7 Indikator (Total 100 Poin)
+        </h3>
+
+        <div class="space-y-6">
+
+            {{-- 5.14 Paragraph Length --}}
+            <div id="detail-read-1" data-section class="scroll-mt-24 bg-slate-50/60 border border-slate-200 rounded-lg p-5">
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="text-xs font-black text-brand bg-brand/10 px-2 py-0.5 rounded">5.14</span>
+                    <h4 class="text-sm font-bold text-slate-900">Paragraph Length</h4>
+                    <span class="ml-auto text-xs font-black text-brand">15 poin</span>
+                </div>
+                <p class="text-[13px] text-slate-600 leading-relaxed mb-3">Maksimal <strong>10% paragraf</strong> boleh memiliki lebih dari 150 kata. Paragraf panjang sulit dibaca di layar.</p>
+                <div class="grid sm:grid-cols-2 gap-3 mb-3">
+                    <div>
+                        <p class="text-[11px] font-bold text-emerald-600 uppercase mb-1">✅ Benar — Paragraf pendek (15 poin)</p>
+                        <pre class="bg-emerald-50 border border-emerald-200 rounded p-3 text-[12px] text-slate-700 overflow-x-auto"><code>Paragraf 1: 60 kata ✓
+Paragraf 2: 80 kata ✓
+Paragraf 3: 45 kata ✓
+Paragraf 4: 70 kata ✓
+Paragraf 5: 55 kata ✓
+
+→ 0% paragraf panjang (semua < 150 kata)
+→ Mudah dibaca, nyaman di mata</code></pre>
+                    </div>
+                    <div>
+                        <p class="text-[11px] font-bold text-rose-600 uppercase mb-1">❌ Salah — Paragraf panjang (0 poin)</p>
+                        <pre class="bg-rose-50 border border-rose-200 rounded p-3 text-[12px] text-slate-700 overflow-x-auto"><code>Paragraf 1: 350 kata ✗
+Paragraf 2: 280 kata ✗
+Paragraf 3: 60 kata ✓
+Paragraf 4: 400 kata ✗
+
+→ 75% paragraf panjang (> 150 kata)
+→ Pembaca kelelahan, bounce rate tinggi</code></pre>
+                    </div>
+                </div>
+                <div class="bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 text-[12px] text-blue-700">
+                    💡 <strong>Tips:</strong> Pecah paragraf panjang menjadi 2-3 paragraf pendek. Idealnya 50-100 kata per paragraf. Setiap paragraf = 1 gagasan.
+                </div>
+            </div>
+
+            {{-- 5.15 Sentence Length --}}
+            <div id="detail-read-2" data-section class="scroll-mt-24 bg-slate-50/60 border border-slate-200 rounded-lg p-5">
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="text-xs font-black text-brand bg-brand/10 px-2 py-0.5 rounded">5.15</span>
+                    <h4 class="text-sm font-bold text-slate-900">Sentence Length</h4>
+                    <span class="ml-auto text-xs font-black text-brand">18 poin</span>
+                </div>
+                <p class="text-[13px] text-slate-600 leading-relaxed mb-3">Maksimal <strong>25% kalimat</strong> boleh memiliki lebih dari 20 kata. Kalimat panjang sulit dipahami.</p>
+                <div class="grid sm:grid-cols-2 gap-3 mb-3">
+                    <div>
+                        <p class="text-[11px] font-bold text-emerald-600 uppercase mb-1">✅ Benar — Kalimat pendek (18 poin)</p>
+                        <pre class="bg-emerald-50 border border-emerald-200 rounded p-3 text-[12px] text-slate-700 overflow-x-auto"><code>"Strategi ini membantu perusahaan
+mengelola konten dengan lebih
+efisien." (12 kata) ✓
+
+"Hasilnya, visibilitas online meningkat
+signifikan." (8 kata) ✓
+
+→ Ringkas, langsung ke poin</code></pre>
+                    </div>
+                    <div>
+                        <p class="text-[11px] font-bold text-rose-600 uppercase mb-1">❌ Salah — Kalimat panjang (6 poin)</p>
+                        <pre class="bg-rose-50 border border-rose-200 rounded p-3 text-[12px] text-slate-700 overflow-x-auto"><code>"Strategi ini, yang dikembangkan oleh tim
+digital marketing sejak tahun 2020 dan
+telah diuji coba di berbagai perusahaan
+dengan berbagai ukuran mulai dari UMKM
+hingga korporasi besar, terbukti membantu
+meningkatkan visibilitas online." (42 kata) ✗
+
+→ Terlalu panjang, melelahkan</code></pre>
+                    </div>
+                </div>
+                <div class="bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 text-[12px] text-blue-700">
+                    💡 <strong>Tips:</strong> Idealnya 10-20 kata per kalimat. Jika kalimat > 30 kata, pecah menjadi 2 kalimat. Gunakan tanda titik lebih sering.
+                </div>
+            </div>
+
+            {{-- 5.16 Subheading Distribution --}}
+            <div id="detail-read-3" data-section class="scroll-mt-24 bg-slate-50/60 border border-slate-200 rounded-lg p-5">
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="text-xs font-black text-brand bg-brand/10 px-2 py-0.5 rounded">5.16</span>
+                    <h4 class="text-sm font-bold text-slate-900">Subheading Distribution</h4>
+                    <span class="ml-auto text-xs font-black text-brand">15 poin</span>
+                </div>
+                <p class="text-[13px] text-slate-600 leading-relaxed mb-3">Rata-rata <strong>≤ 300 kata</strong> antar subheading (H2/H3). Membantu pembaca scan dan navigasi konten.</p>
+                <div class="grid sm:grid-cols-2 gap-3 mb-3">
+                    <div>
+                        <p class="text-[11px] font-bold text-emerald-600 uppercase mb-1">✅ Benar — Distribusi merata (15 poin)</p>
+                        <pre class="bg-emerald-50 border border-emerald-200 rounded p-3 text-[12px] text-slate-700 overflow-x-auto"><code>Artikel 1200 kata dengan 5 subheading:
+
+H2: Pengenalan (200 kata)
+H2: Manfaat (250 kata)
+H2: Cara Implementasi (300 kata)
+H2: Studi Kasus (250 kata)
+H2: Kesimpulan (200 kata)
+
+→ Rata-rata 240 kata antar subheading ✓</code></pre>
+                    </div>
+                    <div>
+                        <p class="text-[11px] font-bold text-rose-600 uppercase mb-1">❌ Salah — Subheading jarang (0 poin)</p>
+                        <pre class="bg-rose-50 border border-rose-200 rounded p-3 text-[12px] text-slate-700 overflow-x-auto"><code>Artikel 1500 kata dengan 1 subheading:
+
+H2: Pengenalan (50 kata)
+    [Tanpa subheading - 1400 kata teks]
+H2: Kesimpulan (50 kata)
+
+→ Rata-rata 1500 kata antar subheading ✗
+→ Pembaca kesulitan mencari informasi</code></pre>
+                    </div>
+                </div>
+                <div class="bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 text-[12px] text-blue-700">
+                    💡 <strong>Tips:</strong> Gunakan H2 untuk topik utama, H3 untuk sub-bagian. Idealnya 1 subheading setiap 200-300 kata. Buat outline sebelum menulis.
+                </div>
+            </div>
+
+            {{-- 5.17 Transition Words --}}
+            <div id="detail-read-4" data-section class="scroll-mt-24 bg-slate-50/60 border border-slate-200 rounded-lg p-5">
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="text-xs font-black text-brand bg-brand/10 px-2 py-0.5 rounded">5.17</span>
+                    <h4 class="text-sm font-bold text-slate-900">Transition Words</h4>
+                    <span class="ml-auto text-xs font-black text-brand">15 poin</span>
+                </div>
+                <p class="text-[13px] text-slate-600 leading-relaxed mb-3">Minimal <strong>30% kalimat</strong> harus menggunakan kata penghubung (transition words) agar tulisan mengalir.</p>
+                <div class="grid sm:grid-cols-2 gap-3 mb-3">
+                    <div>
+                        <p class="text-[11px] font-bold text-emerald-600 uppercase mb-1">✅ Benar — Banyak transition (15 poin)</p>
+                        <pre class="bg-emerald-50 border border-emerald-200 rounded p-3 text-[12px] text-slate-700 overflow-x-auto"><code>"<strong>Selain itu</strong>, strategi ini juga efisien.
+<strong>Namun</strong>, implementasinya membutuhkan waktu.
+<strong>Oleh karena itu</strong>, perlu perencanaan matang.
+<strong>Contohnya</strong>, PT X berhasil meningkatkan...
+<strong>Pertama</strong>, kita perlu memahami...
+<strong>Kemudian</strong>, langkah selanjutnya adalah..."
+
+→ 6/8 kalimat pakai transition = 75%</code></pre>
+                    </div>
+                    <div>
+                        <p class="text-[11px] font-bold text-rose-600 uppercase mb-1">❌ Salah — Tanpa transition (0 poin)</p>
+                        <pre class="bg-rose-50 border border-rose-200 rounded p-3 text-[12px] text-slate-700 overflow-x-auto"><code>"Strategi ini efisien. Implementasinya
+membutuhkan waktu. Perlu perencanaan
+matang. PT X berhasil meningkatkan.
+Kita perlu memahami. Langkah selanjutnya
+adalah..."
+
+→ 0/8 kalimat pakai transition = 0%
+→ Tulisan terasa kaku dan tidak mengalir</code></pre>
+                    </div>
+                </div>
+                <div class="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-[12px] text-amber-700 mb-3">
+                    <strong>Kata Penghubung yang Direkomendasikan:</strong><br>
+                    <strong>Addition:</strong> selain itu, di samping itu, furthermore, moreover<br>
+                    <strong>Contrast:</strong> namun, tetapi, akan tetapi, sebaliknya<br>
+                    <strong>Cause:</strong> karena, sebab, oleh karena itu, akibatnya<br>
+                    <strong>Example:</strong> misalnya, contohnya, yaitu, seperti<br>
+                    <strong>Sequence:</strong> pertama, kedua, selanjutnya, kemudian, akhirnya<br>
+                    <strong>Conclusion:</strong> singkatnya, intinya, pada dasarnya, dengan demikian
+                </div>
+                <div class="bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 text-[12px] text-blue-700">
+                    💡 <strong>Tips:</strong> Variasikan penggunaan transition words. Jangan pakai "namun" terus-menerus. Campur: "selain itu", "sebaliknya", "akibatnya", dll.
+                </div>
+            </div>
+
+            {{-- 5.18 Passive Voice --}}
+            <div id="detail-read-5" data-section class="scroll-mt-24 bg-slate-50/60 border border-slate-200 rounded-lg p-5">
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="text-xs font-black text-brand bg-brand/10 px-2 py-0.5 rounded">5.18</span>
+                    <h4 class="text-sm font-bold text-slate-900">Passive Voice</h4>
+                    <span class="ml-auto text-xs font-black text-brand">12 poin</span>
+                </div>
+                <p class="text-[13px] text-slate-600 leading-relaxed mb-3">Maksimal <strong>10% kalimat</strong> boleh menggunakan voice pasif. Kalimat aktif lebih engaging dan jelas.</p>
+                <div class="grid sm:grid-cols-2 gap-3 mb-3">
+                    <div>
+                        <p class="text-[11px] font-bold text-emerald-600 uppercase mb-1">✅ Benar — Aktif (12 poin)</p>
+                        <pre class="bg-emerald-50 border border-emerald-200 rounded p-3 text-[12px] text-slate-700 overflow-x-auto"><code>"<strong>Tim mengelola</strong> artikel SEO terpusat."
+
+→ Subjek (Tim) melakukan aksi (mengelola)
+→ Jelas, langsung, engaging
+
+"<strong>Kami mengembangkan</strong> strategi baru."
+
+→ Voice aktif, mudah dipahami</code></pre>
+                    </div>
+                    <div>
+                        <p class="text-[11px] font-bold text-rose-600 uppercase mb-1">❌ Salah — Pasif (4 poin)</p>
+                        <pre class="bg-rose-50 border border-rose-200 rounded p-3 text-[12px] text-slate-700 overflow-x-auto"><code>"Artikel SEO terpusat <strong>dikelola</strong> oleh tim."
+
+→ Pola "di-..." = passive voice
+
+"Strategi baru <strong>dikembangkan</strong> oleh kami."
+
+→ Pola "di-..." = passive voice
+
+Ciri passive voice Bahasa Indonesia:
+awalan di-, ter-, akhiran -kan, -i</code></pre>
+                    </div>
+                </div>
+                <div class="bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 text-[12px] text-blue-700">
+                    💡 <strong>Tips:</strong> Tulis dengan subjek aktif. Ubah "Artikel ditulis oleh penulis" → "Penulis menulis artikel". Hindari berlebihan pakai "di-" dan "ter-".
+                </div>
+            </div>
+
+            {{-- 5.19 Consecutive Sentences --}}
+            <div id="detail-read-6" data-section class="scroll-mt-24 bg-slate-50/60 border border-slate-200 rounded-lg p-5">
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="text-xs font-black text-brand bg-brand/10 px-2 py-0.5 rounded">5.19</span>
+                    <h4 class="text-sm font-bold text-slate-900">Consecutive Sentences</h4>
+                    <span class="ml-auto text-xs font-black text-brand">12 poin</span>
+                </div>
+                <p class="text-[13px] text-slate-600 leading-relaxed mb-3">Maksimal <strong>2 kalimat berturut-turut</strong> diawali kata yang sama. Variasi awal kalimat agar tulisan tidak monoton.</p>
+                <div class="grid sm:grid-cols-2 gap-3 mb-3">
+                    <div>
+                        <p class="text-[11px] font-bold text-emerald-600 uppercase mb-1">✅ Benar — Variasi awal (12 poin)</p>
+                        <pre class="bg-emerald-50 border border-emerald-200 rounded p-3 text-[12px] text-slate-700 overflow-x-auto"><code>"<strong>Pertama</strong>, buat outline konten.
+<strong>Kemudian</strong>, tulis draf pertama.
+<strong>Setelah itu</strong>, review dan perbaiki.
+<strong>Terakhir</strong>, publikasikan ke WordPress."
+
+→ Setiap kalimat diawali kata berbeda
+→ Variasi, tidak membosankan</code></pre>
+                    </div>
+                    <div>
+                        <p class="text-[11px] font-bold text-rose-600 uppercase mb-1">❌ Salah — Awal sama (4 poin)</p>
+                        <pre class="bg-rose-50 border border-rose-200 rounded p-3 text-[12px] text-slate-700 overflow-x-auto"><code>"<strong>Artikel</strong> ini membahas SEO.
+<strong>Artikel</strong> ini juga membahas Readability.
+<strong>Artikel</strong> ini cocok untuk pemula.
+<strong>Artikel</strong> ini sangat informatif."
+
+→ 4 kalimat berturut diawali "Artikel"
+→ Monoton, membosankan, skor turun</code></pre>
+                    </div>
+                </div>
+                <div class="bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 text-[12px] text-blue-700">
+                    💡 <strong>Tips:</strong> Mulai kalimat dengan variasi: nama orang/tempat, angka, kata sifat, kata kerja, atau transition words. Hindari pola berulang.
+                </div>
+            </div>
+
+            {{-- 5.20 Flesch Reading Ease --}}
+            <div id="detail-read-7" data-section class="scroll-mt-24 bg-slate-50/60 border border-slate-200 rounded-lg p-5">
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="text-xs font-black text-brand bg-brand/10 px-2 py-0.5 rounded">5.20</span>
+                    <h4 class="text-sm font-bold text-slate-900">Flesch Reading Ease</h4>
+                    <span class="ml-auto text-xs font-black text-brand">13 poin</span>
+                </div>
+                <p class="text-[13px] text-slate-600 leading-relaxed mb-3">Skor Flesch Reading Ease targetnya <strong>50–70</strong> (target 60). Mengukur seberapa mudah konten dibaca berdasarkan panjang kalimat dan suku kata.</p>
+                <div class="grid sm:grid-cols-2 gap-3 mb-3">
+                    <div>
+                        <p class="text-[11px] font-bold text-emerald-600 uppercase mb-1">✅ Benar — Skor 60 (13 poin)</p>
+                        <pre class="bg-emerald-50 border border-emerald-200 rounded p-3 text-[12px] text-slate-700 overflow-x-auto"><code>Skor Flesch: 60.0 (target ideal)
+
+Ciri-ciri tulisan mudah dibaca:
+- Kalimat pendek (10-20 kata)
+- Kata-kata sederhana
+- Tidak terlalu banyak istilah teknis
+- Paragraf pendek
+
+→ Mudah dipahami orang awam</code></pre>
+                    </div>
+                    <div>
+                        <p class="text-[11px] font-bold text-rose-600 uppercase mb-1">❌ Salah — Skor 25 (3 poin)</p>
+                        <pre class="bg-rose-50 border border-rose-200 rounded p-3 text-[12px] text-slate-700 overflow-x-auto"><code>Skor Flesch: 25.0 (terlalu kompleks)
+
+Ciri-ciri tulisan sulit dibaca:
+- Kalimat sangat panjang (40+ kata)
+- Banyak istilah teknis
+- Suku kata panjang-banyak
+- Tidak ada jeda
+
+→ Hanya bisa dipahami ahli</code></pre>
+                    </div>
+                </div>
+                <div class="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-[12px] text-amber-700 mb-3">
+                    <strong>Skala Flesch Reading Ease:</strong><br>
+                    <strong>90-100:</strong> Sangat mudah (anak SD)<br>
+                    <strong>80-89:</strong> Mudah (konversasi sehari-hari)<br>
+                    <strong>70-79:</strong> Cukup mudah<br>
+                    <strong>60-69:</strong> Standar (target ideal!)<br>
+                    <strong>50-59:</strong> Cukup sulit<br>
+                    <strong>30-49:</strong> Sulit (tingkat universitas)<br>
+                    <strong>0-29:</strong> Sangat sulit (akademis)
+                </div>
+                <div class="bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 text-[12px] text-blue-700">
+                    💡 <strong>Tips:</strong> Gunakan kalimat pendek + kata sederhana. Hindari istilah teknis berlebihan. Jika harus pakai istilah teknis, jelaskan dalam bahasa sederhana.
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    {{-- Summary Box --}}
+    <div class="mt-8 bg-gradient-to-r from-brand/5 to-blue-50 border border-brand/20 rounded-xl p-5">
+        <h4 class="text-sm font-bold text-slate-900 mb-3">Ringkasan Threshold Ganda</h4>
+        <div class="grid sm:grid-cols-3 gap-3">
+            <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-3 text-center">
+                <p class="text-lg font-black text-emerald-600">≥ 80</p>
+                <p class="text-[11px] text-emerald-700 font-semibold">SEO + Readability</p>
+                <p class="text-[10px] text-emerald-600 mt-1">✓ Bisa Publish</p>
+            </div>
+            <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 text-center">
+                <p class="text-lg font-black text-amber-600">60 – 79</p>
+                <p class="text-[11px] text-amber-700 font-semibold"> salah satu skor</p>
+                <p class="text-[10px] text-amber-600 mt-1">⚠ Needs Improvement</p>
+            </div>
+            <div class="bg-rose-50 border border-rose-200 rounded-lg p-3 text-center">
+                <p class="text-lg font-black text-rose-600">< 60</p>
+                <p class="text-[11px] text-rose-700 font-semibold">salah satu skor</p>
+                <p class="text-[10px] text-rose-600 mt-1">✕ Tidak Bisa Publish</p>
+            </div>
+        </div>
+    </div>
+</section>
