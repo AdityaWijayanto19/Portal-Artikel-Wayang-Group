@@ -119,6 +119,36 @@
                         <li><a data-toc-link href="#faq" class="toc-item">
                                 <span class="text-brand font-bold shrink-0">4</span> FAQ
                             </a></li>
+                        <li><a data-toc-link href="#detail-seo-readability" class="toc-item">
+                                <span class="text-brand font-bold shrink-0">5</span> Panduan Detail SEO &amp; Readability
+                            </a></li>
+                        <li><a data-toc-link href="#detail-seo" class="toc-item toc-sub">
+                                <span class="text-slate-300 font-bold shrink-0">5.A</span> SEO Indicators
+                            </a></li>
+                        <li><a data-toc-link href="#detail-seo-1" class="toc-item toc-sub">
+                                <span class="text-slate-300 font-bold shrink-0">5.1</span> Keyphrase in Title
+                            </a></li>
+                        <li><a data-toc-link href="#detail-seo-4" class="toc-item toc-sub">
+                                <span class="text-slate-300 font-bold shrink-0">5.4</span> Keyphrase in Intro
+                            </a></li>
+                        <li><a data-toc-link href="#detail-seo-5" class="toc-item toc-sub">
+                                <span class="text-slate-300 font-bold shrink-0">5.5</span> Keyphrase Density
+                            </a></li>
+                        <li><a data-toc-link href="#detail-seo-12" class="toc-item toc-sub">
+                                <span class="text-slate-300 font-bold shrink-0">5.12</span> Word Count
+                            </a></li>
+                        <li><a data-toc-link href="#detail-readability" class="toc-item toc-sub">
+                                <span class="text-slate-300 font-bold shrink-0">5.B</span> Readability Indicators
+                            </a></li>
+                        <li><a data-toc-link href="#detail-read-1" class="toc-item toc-sub">
+                                <span class="text-slate-300 font-bold shrink-0">5.14</span> Paragraph Length
+                            </a></li>
+                        <li><a data-toc-link href="#detail-read-4" class="toc-item toc-sub">
+                                <span class="text-slate-300 font-bold shrink-0">5.17</span> Transition Words
+                            </a></li>
+                        <li><a data-toc-link href="#detail-read-7" class="toc-item toc-sub">
+                                <span class="text-slate-300 font-bold shrink-0">5.20</span> Flesch Reading Ease
+                            </a></li>
                     </ul>
                 </div>
             </aside>
