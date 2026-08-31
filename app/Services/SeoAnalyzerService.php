@@ -12,23 +12,59 @@ class SeoAnalyzerService
      * Daftar kata transisi/penghubung Bahasa Indonesia.
      */
     private const TRANSITION_WORDS = [
-        'selain itu', 'namun', 'tetapi', 'akan tetapi', 'meskipun', 'walaupun',
-        'karena', 'sebab', 'akibatnya', 'oleh karena itu', 'consequently',
-        'di samping itu', 'furthermore', 'moreover', 'additionally',
-        'sebaliknya', 'on the other hand', 'however',
+        // ── Addition ──
+        'selain itu', 'di samping itu', 'untuk itu',
+        'furthermore', 'moreover', 'additionally', 'in addition',
+        'also', 'besides', "what's more", 'as well', 'on top of that',
+
+        // ── Contrast ──
+        'namun', 'tetapi', 'akan tetapi', 'meskipun', 'walaupun',
+        'sebaliknya', 'alih-alih',
+        'however', 'on the other hand', 'on the other side',
+        'nevertheless', 'nonetheless', 'conversely',
+        'although', 'though', 'whereas', 'despite',
+        'in contrast', 'on the contrary',
+
+        // ── Cause / Effect ──
+        'karena', 'sebab', 'akibatnya', 'oleh karena itu',
+        'maka', 'sehingga', 'dengan demikian', 'sebagai hasilnya',
+        'consequently', 'thus', 'therefore', 'hence', 'accordingly',
+        'as a result',
+
+        // ── Example ──
+        'misalnya', 'contohnya', 'seperti', 'yaitu',
+        'for example', 'for instance', 'such as',
+        'in particular', 'specifically', 'namely',
+
+        // ── Sequence / Order ──
         'pertama', 'kedua', 'ketiga', 'selanjutnya', 'kemudian', 'akhirnya',
-        'misalnya', 'contohnya', 'seperti', 'yaitu', 'adalah',
-        'jika', 'apabila', 'bila', 'seandainya', 'asalkan',
+        'lalu', 'setelah itu', 'sebelumnya',
+        'hingga', 'sampai',
+        'firstly', 'secondly', 'thirdly',
+        'next', 'finally', 'lastly',
+        'afterwards', 'meanwhile', 'previously', 'subsequently',
+
+        // ── Summary / Conclusion ──
+        'singkatnya', 'intinya', 'pada dasarnya',
+        'dengan kata lain',
+        'basically', 'in other words',
+        'in conclusion', 'to sum up', 'in summary',
+        'in short', 'overall', 'briefly',
+
+        // ── Emphasis ──
         'justru', 'bahkan', 'terutama', 'khususnya', 'utamanya',
         'tentu', 'pasti', 'jelas', 'nyatanya', 'faktanya',
-        'singkatnya', 'intinya', 'pada dasarnya', 'basically',
-        'untuk itu', 'dengan demikian', 'thus', 'therefore',
-        'sebagai hasilnya', 'as a result',
-        'dengan kata lain', 'in other words',
-        'alih-alih', 'instead',
-        'lalu', 'setelah itu', 'sebelumnya',
-        'di sisi lain', 'on the other side',
-        'maka', 'sehingga', 'hingga', 'sampai',
+        'instead',
+        'indeed', 'in fact', 'certainly',
+        'obviously', 'clearly', 'undoubtedly',
+
+        // ── Similarity ──
+        'similarly', 'likewise',
+
+        // ── Time ──
+        'jika', 'apabila', 'bila', 'seandainya', 'asalkan',
+        'di sisi lain',
+        'eventually', 'ultimately',
     ];
 
     /**
