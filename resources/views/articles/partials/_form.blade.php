@@ -704,25 +704,63 @@
                     return matches ? Math.max(1, matches.length) : 1;
                 },
 
-                // ===== Indonesian Transition Words =====
+                // ===== Transition Words (ID + EN) =====
                 hasTransitionWord(sentence) {
                     const lower = sentence.toLowerCase();
                     const words = [
-                        'selain itu', 'namun', 'tetapi', 'akan tetapi', 'meskipun', 'walaupun',
+                        // ── Addition ──
+                        'selain itu', 'di samping itu', 'untuk itu',
+                        'furthermore', 'moreover', 'additionally', 'in addition',
+                        'also', 'besides', "what's more", 'as well', 'on top of that',
+
+                        // ── Contrast ──
+                        'namun', 'tetapi', 'akan tetapi', 'meskipun', 'walaupun',
+                        'sebaliknya', 'alih-alih',
+                        'however', 'on the other hand', 'on the other side',
+                        'nevertheless', 'nonetheless', 'conversely',
+                        'although', 'though', 'whereas', 'despite',
+                        'in contrast', 'on the contrary',
+
+                        // ── Cause / Effect ──
                         'karena', 'sebab', 'akibatnya', 'oleh karena itu',
-                        'di samping itu', 'furthermore', 'moreover', 'additionally',
-                        'sebaliknya', 'on the other hand', 'however',
+                        'maka', 'sehingga', 'dengan demikian', 'sebagai hasilnya',
+                        'consequently', 'thus', 'therefore', 'hence', 'accordingly',
+                        'as a result',
+
+                        // ── Example ──
+                        'misalnya', 'contohnya', 'seperti', 'yaitu',
+                        'for example', 'for instance', 'such as',
+                        'in particular', 'specifically', 'namely',
+
+                        // ── Sequence / Order ──
                         'pertama', 'kedua', 'ketiga', 'selanjutnya', 'kemudian', 'akhirnya',
-                        'misalnya', 'contohnya', 'seperti', 'yaitu', 'adalah',
-                        'jika', 'apabila', 'bila', 'seandainya', 'asalkan',
+                        'lalu', 'setelah itu', 'sebelumnya',
+                        'hingga', 'sampai',
+                        'firstly', 'secondly', 'thirdly',
+                        'next', 'finally', 'lastly',
+                        'afterwards', 'meanwhile', 'previously', 'subsequently',
+
+                        // ── Summary / Conclusion ──
+                        'singkatnya', 'intinya', 'pada dasarnya',
+                        'dengan kata lain',
+                        'basically', 'in other words',
+                        'in conclusion', 'to sum up', 'in summary',
+                        'in short', 'overall', 'briefly',
+
+                        // ── Emphasis ──
                         'justru', 'bahkan', 'terutama', 'khususnya', 'utamanya',
                         'tentu', 'pasti', 'jelas', 'nyatanya', 'faktanya',
-                        'singkatnya', 'intinya', 'pada dasarnya',
-                        'untuk itu', 'dengan demikian',
-                        'dengan kata lain', 'in other words',
-                        'lalu', 'setelah itu', 'sebelumnya',
+                        'instead',
+                        'indeed', 'in fact', 'certainly',
+                        'obviously', 'clearly', 'undoubtedly',
+
+                        // ── Similarity ──
+                        'similarly', 'likewise',
+
+                        // ── Time ──
+                        'jika', 'apabila', 'bila', 'seandainya', 'asalkan',
                         'di sisi lain',
-                        'maka', 'sehingga', 'hingga', 'sampai',
+                        'eventually', 'ultimately',
                     ];
                     return words.some(w => lower.includes(w));
                 },
