@@ -1091,10 +1091,13 @@
                 // ===== Auto-Save & Draft Recovery =====
                 setupAutoSave() {
                     const self = this;
-                    // Event delegation: detect semua input di form
                     const form = this.$el.closest('form');
                     if (form) {
+                        // Grace period 500ms — abaikan input event saat page load
+                        // (TinyMCE init, browser autofill, Alpine.js init)
+                        const deadline = Date.now() + 500;
                         form.addEventListener('input', function () {
+                            if (Date.now() < deadline) return;
                             self.dirty = true;
                             self.scheduleSave();
                         });
