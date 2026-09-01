@@ -259,7 +259,9 @@ class ArticleController extends Controller
                 'total_ms' => round((microtime(true) - $start) * 1000, 2),
             ]);
 
-            return redirect()->route('articles.index')->with('success', 'Draft berhasil disimpan.');
+            return $request->boolean('_force_draft')
+                ? redirect()->route('articles.edit', $article)->with('success', 'Draft berhasil disimpan.')
+                : redirect()->route('articles.index')->with('success', 'Draft berhasil disimpan.');
         } catch (\Throwable $th) {
             Log::error('Gagal menambahkan artikel: '.$th->getMessage());
 
@@ -308,7 +310,9 @@ class ArticleController extends Controller
                 'total_ms' => round((microtime(true) - $start) * 1000, 2),
             ]);
 
-            return redirect()->route('articles.index')->with('success', 'Artikel berhasil diperbarui.');
+            return $request->boolean('_force_draft')
+                ? redirect()->route('articles.edit', $article)->with('success', 'Draft berhasil disimpan.')
+                : redirect()->route('articles.index')->with('success', 'Artikel berhasil diperbarui.');
         } catch (\Throwable $th) {
             Log::error('Gagal memperbarui artikel: '.$th->getMessage());
 

@@ -25,9 +25,37 @@
     altText: @js(old('image_alt_text', $isEdit ? $article->image_alt_text : '')),
     status: @js($selectedStatus),
     articleId: @js($isEdit ? $article->id : null),
+    companyId: @js($company->id),
     checkKeywordUrl: @js(route('articles.check-keyword')),
 })" @content-updated="onContentChange($event)"
     class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+    {{-- ================= RESTORE DRAFT BANNER ================= --}}
+    <div x-show="showRestoreBanner" x-cloak x-transition
+        class="col-span-full bg-amber-50 border border-amber-200 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+                <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+            </div>
+            <div>
+                <p class="text-sm font-semibold text-amber-800">Draft ditemukan dari sesi sebelumnya</p>
+                <p class="text-xs text-amber-600">Disimpan <span x-text="timeAgo(draftData?.saved_at)"></span></p>
+            </div>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+            <button type="button" @click="loadDraft()"
+                class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold rounded-lg transition">
+                Muat Draft
+            </button>
+            <button type="button" @click="discardDraft()"
+                class="px-4 py-2 bg-white hover:bg-slate-50 text-slate-600 text-xs font-semibold rounded-lg border border-slate-200 transition">
+                Mulai Baru
+            </button>
+        </div>
+    </div>
 
     {{-- ================= KOLOM KIRI: KONTEN ================= --}}
     <div class="lg:col-span-8 space-y-5">
@@ -516,6 +544,32 @@
     </div>
 </div>
 
+{{-- ================= AUTO-SAVE INDICATOR ================= --}}
+<div x-cloak x-transition
+    class="fixed bottom-4 right-4 z-40 flex items-center gap-2 px-3 py-2 rounded-lg shadow-sm text-xs"
+    :class="lastSaveAt ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : (dirty ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-slate-50 text-slate-400 border border-slate-200')">
+    <template x-if="lastSaveAt">
+        <span class="flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+            Draft tersimpan <span x-text="timeAgo(lastSaveAt)"></span>
+        </span>
+    </template>
+    <template x-if="!lastSaveAt && dirty">
+        <span class="flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+            Ada perubahan belum tersimpan
+        </span>
+    </template>
+    <template x-if="!lastSaveAt && !dirty">
+        <span class="flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-slate-300"></span>
+            Belum ada perubahan
+        </span>
+    </template>
+</div>
+
 @push('scripts')
     <script>
         /**
@@ -620,10 +674,30 @@
                 analysisOpen: true,
                 serpDevice: 'desktop',
 
+                // Auto-save & dirty tracking
+                dirty: false,
+                showRestoreBanner: false,
+                draftData: null,
+                storageKey: '',
+                lastSaveAt: null,
+                _initialTitle: '',
+                _initialContent: '',
+                _saveTimer: null,
+
                 init() {
                     this.slugEdited = !!this.slug;
                     if (!this.slug && this.articleTitle) this.slug = this.slugify(this.articleTitle);
                     this.recompute();
+
+                    // Auto-save setup
+                    this.storageKey = 'article_draft_' + (initial.companyId || 0) + '_' + (initial.articleId || 'new');
+                    this._initialTitle = this.articleTitle;
+                    this._initialContent = this.content;
+                    this.dirty = false;
+                    this.checkExistingDraft();
+                    this.setupAutoSave();
+                    this.setupNavigationInterceptor();
+                    this.setupBeforeUnload();
                 },
 
                 slugify(text) {
@@ -638,6 +712,8 @@
 
                 onContentChange(e) {
                     this.content = e.detail ?? this.content;
+                    this.dirty = true;
+                    this.scheduleSave();
                     this.recompute();
                 },
 
@@ -1010,6 +1086,143 @@
                 get readabilityBadgeClass() {
                     return this.readabilityScore >= 80 ? 'bg-emerald-50 text-emerald-700' :
                         (this.readabilityScore >= 60 ? 'bg-amber-50 text-amber-700' : 'bg-rose-50 text-rose-700');
+                },
+
+                // ===== Auto-Save & Draft Recovery =====
+                setupAutoSave() {
+                    const self = this;
+                    // Event delegation: detect semua input di form
+                    const form = this.$el.closest('form');
+                    if (form) {
+                        form.addEventListener('input', function () {
+                            self.dirty = true;
+                            self.scheduleSave();
+                        });
+                    }
+                },
+
+                scheduleSave() {
+                    clearTimeout(this._saveTimer);
+                    this._saveTimer = setTimeout(() => this.saveDraft(), 3000);
+                },
+
+                saveDraft() {
+                    try {
+                        const data = {
+                            title: this.articleTitle,
+                            content: this.content,
+                            seo_title: this.seoTitle,
+                            slug: this.slug,
+                            metadesc: this.metadesc,
+                            focuskw: this.focuskw,
+                            alt_text: this.altText,
+                            status: this.status,
+                            saved_at: new Date().toISOString(),
+                        };
+                        localStorage.setItem(this.storageKey, JSON.stringify(data));
+                        this.lastSaveAt = new Date().toISOString();
+                    } catch (e) {
+                        console.warn('[AutoSave] Gagal simpan draft:', e);
+                    }
+                },
+
+                checkExistingDraft() {
+                    try {
+                        const raw = localStorage.getItem(this.storageKey);
+                        if (!raw) return;
+                        const data = JSON.parse(raw);
+                        if (data && (data.content || data.title)) {
+                            this.draftData = data;
+                            this.showRestoreBanner = true;
+                        }
+                    } catch (e) {
+                        console.warn('[AutoSave] Gagal baca draft:', e);
+                    }
+                },
+
+                loadDraft() {
+                    const d = this.draftData;
+                    if (!d) return;
+                    this.articleTitle = d.title || '';
+                    this.seoTitle = d.seo_title || '';
+                    this.slug = d.slug || '';
+                    this.metadesc = d.metadesc || '';
+                    this.focuskw = d.focuskw || '';
+                    this.altText = d.alt_text || '';
+                    this.status = d.status || 'draft';
+                    // TinyMCE content restored via setContent
+                    if (window.tinymce && tinymce.get('content_editor')) {
+                        tinymce.get('content_editor').setContent(d.content || '');
+                        tinymce.get('content_editor').save();
+                    }
+                    this.content = d.content || '';
+                    this.showRestoreBanner = false;
+                    this.draftData = null;
+                    this.dirty = false;
+                    this._initialTitle = this.articleTitle;
+                    this._initialContent = this.content;
+                    this.$nextTick(() => this.recompute());
+                },
+
+                discardDraft() {
+                    try { localStorage.removeItem(this.storageKey); } catch (e) {}
+                    this.showRestoreBanner = false;
+                    this.draftData = null;
+                },
+
+                timeAgo(dateStr) {
+                    if (!dateStr) return '';
+                    const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
+                    if (diff < 60) return 'beberapa detik lalu';
+                    if (diff < 3600) return Math.floor(diff / 60) + ' menit lalu';
+                    if (diff < 86400) return Math.floor(diff / 3600) + ' jam lalu';
+                    return Math.floor(diff / 86400) + ' hari lalu';
+                },
+
+                setupNavigationInterceptor() {
+                    const self = this;
+                    document.addEventListener('click', function (e) {
+                        if (!self.dirty) return;
+                        const link = e.target.closest('a[href]');
+                        if (!link) return;
+                        const href = link.getAttribute('href');
+                        if (!href || href === '#' || href.startsWith('javascript:')) return;
+                        if (link.closest('[x-data]') === self.$el) return;
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (confirm('Anda memiliki perubahan yang belum disimpan. Simpan sebagai draft sebelum keluar?')) {
+                            self.submitAsDraft();
+                        } else {
+                            window.location.href = href;
+                        }
+                    }, true);
+                },
+
+                submitAsDraft() {
+                    this.dirty = false;
+                    const form = this.$el.closest('form');
+                    if (!form) return;
+                    let actionInput = form.querySelector('input[name="action"]');
+                    if (actionInput) actionInput.value = 'draft';
+                    let flag = form.querySelector('input[name="_force_draft"]');
+                    if (!flag) {
+                        flag = document.createElement('input');
+                        flag.type = 'hidden';
+                        flag.name = '_force_draft';
+                        form.appendChild(flag);
+                    }
+                    flag.value = '1';
+                    form.submit();
+                },
+
+                setupBeforeUnload() {
+                    const self = this;
+                    window.addEventListener('beforeunload', function (e) {
+                        if (self.dirty) {
+                            e.preventDefault();
+                            e.returnValue = '';
+                        }
+                    });
                 },
             };
         }
