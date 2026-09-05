@@ -599,6 +599,20 @@
                         if (!auto.has(sid)) this.manualChecked[sid] = true;
                     });
                     this.recomputeSites();
+                    this.dispatchCategoriesChanged();
+
+                    window.addEventListener('article-draft:restore', (e) => {
+                        const d = e.detail;
+                        if (!d) return;
+                        this.selectedCategories = (d.categories || []).map(String);
+                        this.manualChecked = {};
+                        this.manualUnchecked = {};
+                        (d.sites || []).forEach(id => {
+                            this.manualChecked[String(id)] = true;
+                        });
+                        this.recomputeSites();
+                        this.dispatchCategoriesChanged();
+                    });
                 },
 
                 autoSites() {
@@ -617,6 +631,15 @@
                     this.selectedSites = [...next];
                 },
 
+                dispatchCategoriesChanged() {
+                    window.dispatchEvent(new CustomEvent('article-draft:categories-changed', {
+                        detail: {
+                            categories: [...this.selectedCategories],
+                            sites: [...this.selectedSites],
+                        },
+                    }));
+                },
+
                 onCategoryToggle(categoryId, checked) {
                     const cid = String(categoryId);
                     if (checked) {
@@ -625,6 +648,7 @@
                         this.selectedCategories = this.selectedCategories.filter(c => c !== cid);
                     }
                     this.recomputeSites();
+                    this.dispatchCategoriesChanged();
                 },
 
                 onSiteToggle(siteId, checked) {
@@ -637,6 +661,7 @@
                         delete this.manualChecked[sid];
                     }
                     this.recomputeSites();
+                    this.dispatchCategoriesChanged();
                 },
             };
         }
@@ -683,6 +708,11 @@
                 _initialTitle: '',
                 _initialContent: '',
                 _saveTimer: null,
+                _ready: false,
+
+                // Categories & sites (synced from siteLinker via events)
+                selectedCategories: [],
+                selectedSites: [],
 
                 init() {
                     this.slugEdited = !!this.slug;
@@ -694,10 +724,17 @@
                     this._initialTitle = this.articleTitle;
                     this._initialContent = this.content;
                     this.dirty = false;
+                    this._ready = false;
                     this.checkExistingDraft();
                     this.setupAutoSave();
-                    this.setupNavigationInterceptor();
-                    this.setupBeforeUnload();
+
+                    // Grace period — skip TinyMCE init events & browser autofill
+                    setTimeout(() => { this._ready = true; }, 600);
+
+                    window.addEventListener('article-draft:categories-changed', (e) => {
+                        this.selectedCategories = e.detail.categories || [];
+                        this.selectedSites = e.detail.sites || [];
+                    });
                 },
 
                 slugify(text) {
@@ -711,6 +748,7 @@
                 },
 
                 onContentChange(e) {
+                    if (!this._ready) return;
                     this.content = e.detail ?? this.content;
                     this.dirty = true;
                     this.scheduleSave();
@@ -1093,11 +1131,8 @@
                     const self = this;
                     const form = this.$el.closest('form');
                     if (form) {
-                        // Grace period 500ms — abaikan input event saat page load
-                        // (TinyMCE init, browser autofill, Alpine.js init)
-                        const deadline = Date.now() + 500;
                         form.addEventListener('input', function () {
-                            if (Date.now() < deadline) return;
+                            if (!self._ready) return;
                             self.dirty = true;
                             self.scheduleSave();
                         });
@@ -1110,6 +1145,7 @@
                 },
 
                 saveDraft() {
+                    if (this.showRestoreBanner) return;
                     try {
                         const data = {
                             title: this.articleTitle,
@@ -1120,6 +1156,8 @@
                             focuskw: this.focuskw,
                             alt_text: this.altText,
                             status: this.status,
+                            categories: [...this.selectedCategories],
+                            sites: [...this.selectedSites],
                             saved_at: new Date().toISOString(),
                         };
                         localStorage.setItem(this.storageKey, JSON.stringify(data));
@@ -1134,7 +1172,15 @@
                         const raw = localStorage.getItem(this.storageKey);
                         if (!raw) return;
                         const data = JSON.parse(raw);
-                        if (data && (data.content || data.title)) {
+                        if (!data || !data.saved_at) return;
+                        const DRAFT_KEYS = ['title', 'content', 'seo_title', 'slug', 'metadesc', 'focuskw', 'alt_text', 'categories', 'sites'];
+                        const hasData = DRAFT_KEYS.some(k => {
+                            const v = data[k];
+                            if (v == null || v === '') return false;
+                            if (Array.isArray(v) && v.length === 0) return false;
+                            return true;
+                        });
+                        if (hasData) {
                             this.draftData = data;
                             this.showRestoreBanner = true;
                         }
@@ -1144,6 +1190,8 @@
                 },
 
                 loadDraft() {
+                    clearTimeout(this._saveTimer);
+                    this._ready = false;
                     const d = this.draftData;
                     if (!d) return;
                     this.articleTitle = d.title || '';
@@ -1159,12 +1207,24 @@
                         tinymce.get('content_editor').save();
                     }
                     this.content = d.content || '';
+
+                    // Restore categories & sites to siteLinker
+                    window.dispatchEvent(new CustomEvent('article-draft:restore', {
+                        detail: {
+                            categories: d.categories || [],
+                            sites: d.sites || [],
+                        },
+                    }));
+
                     this.showRestoreBanner = false;
                     this.draftData = null;
                     this.dirty = false;
                     this._initialTitle = this.articleTitle;
                     this._initialContent = this.content;
-                    this.$nextTick(() => this.recompute());
+                    this.$nextTick(() => {
+                        this.recompute();
+                        this._ready = true;
+                    });
                 },
 
                 discardDraft() {
@@ -1182,24 +1242,7 @@
                     return Math.floor(diff / 86400) + ' hari lalu';
                 },
 
-                setupNavigationInterceptor() {
-                    const self = this;
-                    document.addEventListener('click', function (e) {
-                        if (!self.dirty) return;
-                        const link = e.target.closest('a[href]');
-                        if (!link) return;
-                        const href = link.getAttribute('href');
-                        if (!href || href === '#' || href.startsWith('javascript:')) return;
-                        if (link.closest('[x-data]') === self.$el) return;
-                        e.preventDefault();
-                        e.stopPropagation();
-                        if (confirm('Anda memiliki perubahan yang belum disimpan. Simpan sebagai draft sebelum keluar?')) {
-                            self.submitAsDraft();
-                        } else {
-                            window.location.href = href;
-                        }
-                    }, true);
-                },
+
 
                 submitAsDraft() {
                     this.dirty = false;
@@ -1218,15 +1261,7 @@
                     form.submit();
                 },
 
-                setupBeforeUnload() {
-                    const self = this;
-                    window.addEventListener('beforeunload', function (e) {
-                        if (self.dirty) {
-                            e.preventDefault();
-                            e.returnValue = '';
-                        }
-                    });
-                },
+
             };
         }
     </script>
