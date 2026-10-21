@@ -57,7 +57,13 @@ class StoreArticleRequest extends FormRequest
             'yoast_metadesc' => ['nullable', 'string', 'max:500'],
             'yoast_focuskw' => ['nullable', 'string', 'max:255'],
 
-            'action' => ['required', 'in:draft,publish'],
+            'action' => ['required', 'in:draft,publish,schedule'],
+
+            // Wajib hanya saat action=schedule. Aturan waktu (lead time, horizon,
+            // masa depan) menjadi wewenang tunggal ArticleService::schedule()
+            // sehingga aturan yang sama berlaku untuk form, endpoint PATCH, dan
+            // dispatcher — satu sumber kebenaran.
+            'scheduled_at' => ['required_if:action,schedule', 'nullable', 'date'],
         ];
     }
 
@@ -91,10 +97,16 @@ class StoreArticleRequest extends FormRequest
         // Normalisasi ke array unik, trim, buang kosong.
         $merge['tags'] = $this->normalizeTags($this->input('tags'));
 
-        // Tombol Draft/Publish menetapkan `action`; `status` mengikuti (published→publish).
+        // Tombol Draft/Publish/Jadwalkan menetapkan `action`; `status` mengikuti.
         $status = (string) $this->input('status', 'draft');
         if (! $this->filled('action')) {
             $merge['action'] = $status === 'published' ? 'publish' : 'draft';
+        }
+
+        // Aksi selain schedule tidak memakai jadwal → bersihkan nilainya agar
+        // aturan required_if:action,schedule tidak memaksa input usang.
+        if ((string) ($merge['action'] ?? $this->input('action')) !== 'schedule') {
+            $merge['scheduled_at'] = null;
         }
 
         $this->merge($merge);
@@ -295,6 +307,13 @@ class StoreArticleRequest extends FormRequest
 
             'action.required' => 'Aksi artikel wajib ditentukan.',
             'action.in' => 'Aksi artikel tidak valid.',
+
+            // ==================================================
+            // SCHEDULE (Jadwalkan Publish)
+            // ==================================================
+
+            'scheduled_at.required_if' => 'Tanggal & waktu jadwal wajib dipilih.',
+            'scheduled_at.date' => 'Tanggal & waktu jadwal tidak valid.',
         ];
     }
 }

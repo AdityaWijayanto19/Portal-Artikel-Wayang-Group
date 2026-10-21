@@ -7,12 +7,25 @@
     $selectedAuthor = old('user_id', $isEdit ? $article->user_id : auth()->id());
     $selectedStatus = old(
         'status',
-        $isEdit && in_array($article->status, ['published', 'queued']) ? 'published' : 'draft',
+        $isEdit && in_array($article->status, ['published', 'queued', 'scheduled']) ? 'published' : 'draft',
     );
     $statusOptions = [
         ['value' => 'draft', 'label' => 'Draft (simpan saja)'],
         ['value' => 'published', 'label' => 'Published (kirim ke WordPress)'],
     ];
+
+    // Prefill modal "Pilih tanggal & waktu": input lama (gagal validasi) → jadwal
+    // aktif artikel → kosong (pilih baru). Semua aman terhadap input tidak valid.
+    $scheduledAt = null;
+    if (old('scheduled_at')) {
+        try {
+            $scheduledAt = \Illuminate\Support\Carbon::parse((string) old('scheduled_at'));
+        } catch (\Throwable) {
+            $scheduledAt = null;
+        }
+    } elseif ($isEdit && $article->scheduled_at) {
+        $scheduledAt = $article->scheduled_at;
+    }
 
     // Simpan server sukses → draft milik server, buang cadangan localStorage.
     $clearDraft = (bool) session('success');
@@ -29,6 +42,8 @@
     focuskw: @js(old('yoast_focuskw', $seo->yoast_focuskw ?? '')),
     altText: @js(old('image_alt_text', $isEdit ? $article->image_alt_text : '')),
     status: @js($selectedStatus),
+    scheduleDate: @js($scheduledAt?->format('Y-m-d')),
+    scheduleTime: @js($scheduledAt?->format('H:i')),
     articleId: @js($isEdit ? $article->id : null),
     companyId: @js($company->id),
     clearDraft: @js($clearDraft),
@@ -420,29 +435,147 @@
                 </div>
             </div>
 
-            {{-- action diturunkan dari status; server tetap gatekeep skor SEO + Readability. --}}
-            <input type="hidden" name="action" :value="status === 'published' ? 'publish' : 'draft'">
+            {{-- action diturunkan dari status; 'schedule' hanya aktif setelah modal
+                 konfirmasi. Server tetap gatekeep skor SEO + Readability — saat
+                 dikirim maupun saat jatuh tempo (publishDue). --}}
+            <input type="hidden" name="action" :value="submitAction">
+            <input type="hidden" name="scheduled_at" :value="scheduleMode ? scheduledAtValue : ''">
 
-            <button type="submit" :disabled="status === 'published' && !canPublish"
-                :class="(status === 'published' && !canPublish) ? 'opacity-50 cursor-not-allowed bg-slate-300' : (
-                    status === 'published' ? 'bg-brand hover:bg-brand/90 text-brand-text' :
-                    'bg-slate-800 hover:bg-slate-900 text-white')"
-                class="w-full inline-flex items-center justify-center gap-2 text-xs font-semibold px-4 py-2.5 rounded-xl transition shadow-sm">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M5 10l7-7m0 0l7 7m-7-7v18" x-show="status === 'published'" />
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"
-                        x-show="status !== 'published'" />
-                </svg>
-                <span x-show="status !== 'published'">Simpan Draft</span>
-                <span x-show="status === 'published' && canPublish">Publish ke WordPress</span>
-                <span x-show="status === 'published' && !canPublish">Publish (Skor belum 80)</span>
-            </button>
+            {{-- Split button: [Simpan Draft / Publish] | [Jadwalkan] --}}
+            <div class="flex w-full rounded-xl overflow-hidden border border-slate-200 shadow-sm">
+                <button type="submit" @click="scheduleMode = false"
+                    :disabled="status === 'published' && !canPublish"
+                    :class="(status === 'published' && !canPublish) ? 'opacity-50 cursor-not-allowed bg-slate-300' : (
+                        status === 'published' ? 'bg-brand hover:bg-brand/90 text-brand-text' :
+                        'bg-slate-800 hover:bg-slate-900 text-white')"
+                    class="flex-1 inline-flex items-center justify-center gap-2 text-xs font-semibold px-4 py-2.5 transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M5 10l7-7m0 0l7 7m-7-7v18" x-show="status === 'published'" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"
+                            x-show="status !== 'published'" />
+                    </svg>
+                    <span x-show="status !== 'published'">Simpan Draft</span>
+                    <span x-show="status === 'published' && canPublish">Publish ke WordPress</span>
+                    <span x-show="status === 'published' && !canPublish">Publish (Skor belum 80)</span>
+                </button>
+
+                <button type="button" x-cloak x-show="status === 'published'"
+                    @click="openSchedulePicker()" :disabled="!canPublish"
+                    :class="!canPublish
+                        ? 'opacity-50 cursor-not-allowed bg-slate-100 text-slate-400 border-slate-200'
+                        : 'bg-white hover:bg-violet-50 text-violet-700 border-violet-200'"
+                    class="shrink-0 inline-flex items-center justify-center gap-1.5 text-xs font-semibold px-3.5 py-2.5 border-l transition"
+                    title="Jadwalkan publish ke WordPress pada waktu tertentu">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>Jadwalkan</span>
+                </button>
+            </div>
             <p class="text-[10px] text-slate-400 text-center leading-relaxed">
-                Publikasi diverifikasi ulang di server. SEO & Readability harus &ge; 80.
+                Publikasi diverifikasi ulang di server — saat dikirim &amp; saat jatuh tempo. SEO &amp; Readability harus &ge;
+                80.
             </p>
         </div>
+
+        {{-- Modal: Pilih tanggal & waktu jadwal publish --}}
+        <x-modal name="schedulePicker" title="Pilih tanggal &amp; waktu">
+            <div x-data="schedulePicker({
+                    date: @js($scheduledAt?->format('Y-m-d')),
+                    time: @js($scheduledAt?->format('H:i')),
+                })"
+                x-on:open-schedule-picker.window="onOpen($event.detail)"
+                class="space-y-5">
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    {{-- Kalender mini (Senin di kolom pertama) --}}
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm font-bold text-slate-800" x-text="monthLabel"></span>
+                            <div class="flex items-center gap-1">
+                                <button type="button" @click="prevMonth()"
+                                    class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition"
+                                    title="Bulan sebelumnya">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M15 19l-7-7 7-7" />
+                                    </svg>
+                                </button>
+                                <button type="button" @click="nextMonth()"
+                                    class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition"
+                                    title="Bulan berikutnya">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M9 5l7 7-7 7" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-7 gap-0.5">
+                            <template x-for="(head, hi) in dayHeads" :key="'h' + hi">
+                                <div class="py-1 text-center text-[10px] font-bold text-slate-400 uppercase"
+                                    x-text="head"></div>
+                            </template>
+                            <template x-for="(day, di) in days" :key="di">
+                                <button type="button" @click="pick(day.iso)"
+                                    :class="day.iso === date
+                                        ? 'bg-brand text-brand-text font-bold'
+                                        : (day.isToday
+                                            ? 'bg-violet-50 text-violet-700 font-semibold'
+                                            : (day.inMonth
+                                                ? 'text-slate-700 hover:bg-slate-100'
+                                                : 'text-slate-300 hover:bg-slate-50'))"
+                                    class="aspect-square flex items-center justify-center rounded-lg text-xs transition"
+                                    x-text="day.day"></button>
+                            </template>
+                        </div>
+                    </div>
+
+                    {{-- Tanggal & waktu --}}
+                    <div class="space-y-3">
+                        <div>
+                            <label
+                                class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Tanggal</label>
+                            <input type="text" :value="displayDate" readonly
+                                class="w-full bg-slate-50 text-slate-800 text-sm border border-slate-200 rounded-xl px-3.5 py-2.5 cursor-default">
+                        </div>
+                        <div>
+                            <label
+                                class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Waktu
+                                (WIB)</label>
+                            <input type="time" x-model="time" step="60" @keydown.enter.prevent @input="error = ''"
+                                class="w-full bg-white text-slate-800 text-sm border border-slate-200 rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand transition">
+                        </div>
+
+                        <p x-show="error" x-cloak x-transition
+                            class="text-[11px] font-medium text-rose-500" x-text="error"></p>
+                        <p x-show="!error" class="text-[10px] text-slate-400 leading-relaxed">
+                            Dikirim otomatis ke seluruh situs target saat waktu tiba (dicek tiap menit).
+                        </p>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+                    <button type="button" @click="$dispatch('close-modal', 'schedulePicker')"
+                        class="text-xs font-semibold text-brand hover:text-brand/80 px-3 py-2 transition">Batal</button>
+                    <button type="button" @click="confirm()" :disabled="!date || !time"
+                        :class="(!date || !time)
+                            ? 'opacity-50 cursor-not-allowed bg-slate-300 text-white'
+                            : 'bg-brand hover:bg-brand/90 text-brand-text'"
+                        class="inline-flex items-center gap-2 text-xs font-semibold px-5 py-2.5 rounded-xl transition shadow-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <span>Jadwalkan pengiriman</span>
+                    </button>
+                </div>
+            </div>
+        </x-modal>
 
         {{-- Gambar Unggulan --}}
         <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 space-y-3">
@@ -674,6 +807,164 @@
         }
 
         /**
+         * Schedule Picker — mini calendar (Senin pertama) + input waktu WIB
+         * untuk modal "Pilih tanggal & waktu".
+         *
+         * Komunikasi lewat event window (mengikuti pola x-modal):
+         *   open-schedule-picker → prefill & buka modal
+         *   schedule-confirmed   → serahkan "YYYY-MM-DD HH:MM" ke articleEditor
+         */
+        function schedulePicker(initial) {
+            const MONTHS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+                'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+            const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+                'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+
+            return {
+                date: initial.date || '',
+                time: initial.time || '',
+                viewYear: new Date().getFullYear(),
+                viewMonth: new Date().getMonth(),
+                error: '',
+                dayHeads: ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'],
+
+                init() {
+                    if (!this.time) this.time = this.defaultTime();
+
+                    const base = this.date ? this.parseDate(this.date) : new Date();
+                    this.viewYear = base.getFullYear();
+                    this.viewMonth = base.getMonth();
+                },
+
+                onOpen(detail) {
+                    const d = detail || {};
+                    this.date = d.date || this.date || this.todayIso();
+                    this.time = d.time || this.time || this.defaultTime();
+
+                    const base = this.parseDate(this.date);
+                    this.viewYear = base.getFullYear();
+                    this.viewMonth = base.getMonth();
+                    this.error = '';
+
+                    this.$dispatch('open-modal', 'schedulePicker');
+                },
+
+                // ===== Util tanggal (semua lokal/None-UTC, tanpa parsing ambigu) =====
+                pad(n) {
+                    return String(n).padStart(2, '0');
+                },
+
+                toIso(d) {
+                    return d.getFullYear() + '-' + this.pad(d.getMonth() + 1) + '-' + this.pad(d.getDate());
+                },
+
+                todayIso() {
+                    return this.toIso(new Date());
+                },
+
+                parseDate(iso) {
+                    const [y, m, d] = String(iso).split('-').map(Number);
+                    return new Date(y, (m || 1) - 1, d || 1);
+                },
+
+                /** Waktu default: 10 menit ke depan (lolos lead time minimal 5 menit). */
+                defaultTime() {
+                    const d = new Date(Date.now() + 10 * 60 * 1000);
+                    return this.pad(d.getHours()) + ':' + this.pad(d.getMinutes());
+                },
+
+                // ===== Navigasi & pemilihan =====
+                get monthLabel() {
+                    return MONTHS[this.viewMonth] + ' ' + this.viewYear;
+                },
+
+                get displayDate() {
+                    if (!this.date) return '-';
+                    const d = this.parseDate(this.date);
+                    return d.getDate() + ' ' + MONTHS_SHORT[d.getMonth()] + ' ' + d.getFullYear();
+                },
+
+                prevMonth() {
+                    if (this.viewMonth === 0) {
+                        this.viewMonth = 11;
+                        this.viewYear--;
+                    } else {
+                        this.viewMonth--;
+                    }
+                },
+
+                nextMonth() {
+                    if (this.viewMonth === 11) {
+                        this.viewMonth = 0;
+                        this.viewYear++;
+                    } else {
+                        this.viewMonth++;
+                    }
+                },
+
+                /** Grid bulan 7 kolom, Senin di kolom pertama (selalu kelipatan 7). */
+                get days() {
+                    const first = new Date(this.viewYear, this.viewMonth, 1);
+                    const offset = (first.getDay() + 6) % 7;
+                    const daysInMonth = new Date(this.viewYear, this.viewMonth + 1, 0).getDate();
+                    const total = Math.ceil((offset + daysInMonth) / 7) * 7;
+                    const today = this.todayIso();
+
+                    const list = [];
+                    for (let i = 0; i < total; i++) {
+                        const d = new Date(this.viewYear, this.viewMonth, 1 - offset + i);
+                        const iso = this.toIso(d);
+                        list.push({
+                            day: d.getDate(),
+                            iso: iso,
+                            inMonth: d.getMonth() === this.viewMonth,
+                            isToday: iso === today,
+                        });
+                    }
+
+                    return list;
+                },
+
+                pick(iso) {
+                    this.date = iso;
+                    this.error = '';
+                },
+
+                /**
+                 * Validasi klien (lead time 5 menit, horizon 1 tahun) — versi
+                 * identik tetap dijalankan server sebagai penjaga otoritatif.
+                 */
+                confirm() {
+                    if (!this.date || !this.time) return;
+
+                    const [y, m, d] = this.date.split('-').map(Number);
+                    const [hh, mm] = this.time.split(':').map(Number);
+                    const picked = new Date(y, m - 1, d, hh, mm);
+                    const nowTs = Date.now();
+
+                    if (isNaN(picked.getTime())) {
+                        this.error = 'Tanggal & waktu jadwal tidak valid.';
+                        return;
+                    }
+
+                    if (picked.getTime() < nowTs + 5 * 60 * 1000) {
+                        this.error = 'Waktu jadwal minimal 5 menit dari sekarang.';
+                        return;
+                    }
+
+                    if (picked.getTime() > nowTs + 365 * 24 * 60 * 60 * 1000) {
+                        this.error = 'Waktu jadwal maksimal 1 tahun dari sekarang.';
+                        return;
+                    }
+
+                    this.error = '';
+                    this.$dispatch('close-modal', 'schedulePicker');
+                    this.$dispatch('schedule-confirmed', { value: this.date + ' ' + this.time });
+                },
+            };
+        }
+
+        /**
          * Article Editor — Dual SEO + Readability scoring engine.
          */
         function articleEditor(initial) {
@@ -688,6 +979,12 @@
                 status: initial.status || 'draft',
                 articleId: initial.articleId || null,
                 checkKeywordUrl: initial.checkKeywordUrl || '',
+
+                // Penjadwalan publish (split button "Jadwalkan" + modal tanggal/waktu)
+                scheduleMode: false,
+                scheduledAtValue: '',
+                scheduleDate: initial.scheduleDate || '',
+                scheduleTime: initial.scheduleTime || '',
 
                 // Dual scores
                 seoScore: 0,
@@ -755,6 +1052,23 @@
                         this.selectedCategories = e.detail.categories || [];
                         this.selectedSites = e.detail.sites || [];
                     });
+
+                    // Modal jadwalkan mengonfirmasi pilihan → submit form dengan
+                    // action=schedule + scheduled_at terisi (via hidden input).
+                    window.addEventListener('schedule-confirmed', (e) => {
+                        const value = String(e.detail?.value || '');
+                        if (!value) return;
+
+                        this.scheduleMode = true;
+                        this.scheduledAtValue = value;
+                        this.scheduleDate = value.slice(0, 10);
+                        this.scheduleTime = value.slice(11, 16);
+
+                        this.$nextTick(() => {
+                            const form = this.$el.closest('form');
+                            if (form) form.requestSubmit();
+                        });
+                    });
                 },
 
                 slugify(text) {
@@ -781,6 +1095,29 @@
 
                 get canPublish() {
                     return this.seoScore >= 80 && this.readabilityScore >= 80;
+                },
+
+                /**
+                 * Nilai hidden input `action`: draft | publish | schedule.
+                 * 'schedule' hanya setelah pengguna mengonfirmasi modal tanggal/waktu.
+                 */
+                get submitAction() {
+                    if (this.status !== 'published') return 'draft';
+
+                    return this.scheduleMode ? 'schedule' : 'publish';
+                },
+
+                /**
+                 * Buka modal "Pilih tanggal & waktu" dengan prefill jadwal aktif.
+                 * Konfirmasi modal memicu event `schedule-confirmed` yang menyetel
+                 * scheduleMode + scheduled_at lalu submit form.
+                 */
+                openSchedulePicker() {
+                    if (!this.canPublish || this.status !== 'published') return;
+
+                    window.dispatchEvent(new CustomEvent('open-schedule-picker', {
+                        detail: { date: this.scheduleDate, time: this.scheduleTime },
+                    }));
                 },
 
                 // ===== Google SERP Preview =====

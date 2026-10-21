@@ -38,6 +38,7 @@ class Article extends Model
         'yoast_metadesc',
         'yoast_focuskw',
         'status',
+        'scheduled_at',
     ];
 
     protected function casts(): array
@@ -45,7 +46,16 @@ class Article extends Model
         return [
             'seo_score' => 'integer',
             'readability_score' => 'integer',
+            'scheduled_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Sedang menunggu jadwal publish (belum jatuh tempo / belum diklaim scheduler).
+     */
+    public function isScheduled(): bool
+    {
+        return $this->status === 'scheduled';
     }
 
     public function company(): BelongsTo

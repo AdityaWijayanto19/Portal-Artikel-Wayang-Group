@@ -89,11 +89,21 @@ Route::middleware('auth')->group(function () {
         Route::get('/articles/select', [ArticleController::class, 'selectCompany'])->name('articles.select');
         Route::get('/articles/company/{company}', [ArticleController::class, 'chooseCompany'])->name('articles.company');
         Route::get('/articles/create', [ArticleController::class, 'create'])->name('articles.create');
+
+        // Scheduling upload — halaman kalender & data event (statik, sebelum binding {article}).
+        Route::get('/articles/calendar', [ArticleController::class, 'calendar'])->name('articles.calendar');
+        Route::get('/articles/schedule/events', [ArticleController::class, 'scheduleEvents'])->name('articles.schedule.events');
+
         Route::get('/articles/{article}/edit', [ArticleController::class, 'edit'])->name('articles.edit');
         Route::post('/articles', [ArticleController::class, 'store'])->name('articles.store');
         Route::put('/articles/{article}', [ArticleController::class, 'update'])->name('articles.update');
         Route::post('/articles/{article}/publish', [ArticleController::class, 'publish'])->name('articles.publish');
         Route::post('/articles/{article}/retry/{wpSite?}', [ArticleController::class, 'retry'])->name('articles.retry');
+
+        // Aksi jadwal: ubah waktu (reschedule) & batalkan jadwal → draft.
+        Route::patch('/articles/{article}/schedule', [ArticleController::class, 'updateSchedule'])->name('articles.schedule.update');
+        Route::delete('/articles/{article}/schedule', [ArticleController::class, 'cancelSchedule'])->name('articles.schedule.cancel');
+
         Route::delete('/articles/{article}', [ArticleController::class, 'destroy'])->name('articles.destroy');
         Route::delete('/articles/{article}/sites/{wpSite}', [ArticleController::class, 'destroySite'])->name('articles.sites.destroy');
     });

@@ -120,6 +120,14 @@ class PublishArticleToWordPressJob implements ShouldQueue
      */
     private function recomputeArticleStatus(Article $article): void
     {
+        // Jadwal aktif punya otoritas sendiri: baris per-situs masih 'draft' saat
+        // dispatch dijalankan — jangan timpa 'scheduled' dengan agregat sementara.
+        $fresh = $article->fresh();
+
+        if ($fresh?->status === 'scheduled') {
+            return;
+        }
+
         $statuses = ArticleSitePublication::where('article_id', $article->id)->pluck('status');
 
         if ($statuses->isEmpty()) {

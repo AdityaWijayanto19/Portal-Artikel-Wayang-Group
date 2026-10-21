@@ -137,10 +137,15 @@ cat > /home/u711185757/queue_runner.sh <<'EOF'
 #!/bin/bash
 echo "[$(date)] queue runner jalan" >> /home/u711185757/queue_worker.log
 cd /home/u711185757/domains/wayang.group/public_html/portal_artikel_wayang
+# 1) Scheduler: tukar jadwal publish yang jatuh tempo (articles:publish-due) → antre job
+/opt/alt/php84/usr/bin/php artisan schedule:run >> /home/u711185757/queue_worker.log 2>&1
+# 2) Worker: eksekusi antrean job (publish ke WordPress)
 /opt/alt/php84/usr/bin/php artisan queue:work --stop-when-empty --timeout=600 --max-time=300 >> /home/u711185757/queue_worker.log 2>&1
 EOF
 chmod +x /home/u711185757/queue_runner.sh
 ```
+
+> Baris `schedule:run` inilah yang mengeksekusi **Jadwalkan Publish** — artikel terjadwal akan dikirim ke antrean worker tepat waktu (cek tiap menit, akurasi ±1 menit). Scheduler `articles:publish-due` idempoten (klaim atomik), aman dieksekusi berulang tiap menit.
 
 ### b. Pasang cron di hPanel
 
@@ -238,6 +243,7 @@ git pull
 | JS/CSS tidak termuat / tampilan polos | `public/build` belum di-upload / file `hot` masih ada |
 | Sidebar/dropdown Alpine tidak jalan | Build lama (tanpa Alpine) — ikuti §4 |
 | Artikel klik publish tapi tidak terkirim | Cron queue belum jalan (§6) atau ekstensi `curl` mati |
+| Artikel terjadwal ("Terjadwal") tidak terkirim saat jatuh tempo | Baris `schedule:run` hilang dari `queue_runner.sh` (§6a), atau cron & worker sama-sama mati. Cek `queue_worker.log` & `storage/logs/scheduler.log`. Skor SEO/Readability artikel turun di bawah 80 setelah diedit → jadwal sengaja diblokir, cek log `Jadwal jatuh tempo diblokir gerbang publish` |
 | Error gambar/gd | Ekstensi `gd`/`imagick` belum aktif (§3) |
 | `Class "App\Models\WpSite" not found` (atau Class not found lain) | Beda besar/kecil nama file model. Windows case-insensitive, Linux tidak. Cek `app/Models/*.php` — class `WPSite` direferensikan sebagai `WpSite` di `Company.php:45` (sudah di-fix) |
 | `DecryptException: The MAC is invalid` | APP_KEY server ≠ key yang meng-encrypt data. Salin `APP_KEY` lokal ke server (§7 poin 5) |

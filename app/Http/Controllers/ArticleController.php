@@ -20,8 +20,10 @@ use App\Support\ArticleContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class ArticleController extends Controller
@@ -59,6 +61,7 @@ class ArticleController extends Controller
             return [
                 (string) $article->id => [
                     'status' => $article->status,
+                    'scheduled_at' => $article->scheduled_at?->toIso8601String(),
                     'score' => (int) ($article->seoMeta->seo_score ?? ($article->seo_score ?? 0)),
                     'readability_score' => (int) ($article->seoMeta->readability_score ?? ($article->readability_score ?? 0)),
                     'pubs' => $article->sitePublications->mapWithKeys(fn ($pub) => [
@@ -245,6 +248,26 @@ class ArticleController extends Controller
                 return redirect()->route('articles.index')->with('success', 'Artikel masuk antrean publish.');
             }
 
+            if ($request->string('action')->toString() === 'schedule') {
+                $this->articleService->schedule($article, Carbon::parse((string) $request->input('scheduled_at')));
+
+                $this->activityLogger->log(
+                    ActivityAction::ARTICLE_SCHEDULED,
+                    "Menjadwalkan publish artikel \"{$article->title}\" pada {$this->formatScheduleTime($article)}.",
+                    subject: $article,
+                    properties: ['scheduled_at' => $article->scheduled_at?->toIso8601String()],
+                );
+
+                Log::info('[Article] store+schedule selesai', [
+                    'article_id' => $article->id,
+                    'scheduled_at' => $article->scheduled_at?->toIso8601String(),
+                    'has_image' => $request->hasFile('featured_image'),
+                ]);
+
+                return redirect()->route('articles.index')
+                    ->with('success', 'Artikel dijadwalkan publish pada '.$this->formatScheduleTime($article).' WIB.');
+            }
+
             $this->activityLogger->log(
                 ActivityAction::ARTICLE_CREATED,
                 "Membuat draft artikel \"{$article->title}\".",
@@ -262,6 +285,12 @@ class ArticleController extends Controller
             return $request->boolean('_force_draft')
                 ? redirect()->route('articles.edit', $article)->with('success', 'Draft berhasil disimpan.')
                 : redirect()->route('articles.index')->with('success', 'Draft berhasil disimpan.');
+        } catch (ValidationException $validation) {
+            // Gerbang publish/jadwal ditolak (skor < 80, jadwal terlalu dekat, dsb.)
+            // → tampilkan pesan validasi apa adanya, bukan error sistem generik.
+            Log::info('[Article] store ditolak gerbang validasi', ['errors' => $validation->errors()]);
+
+            return back()->withErrors($validation->errors())->withInput();
         } catch (\Throwable $th) {
             Log::error('Gagal menambahkan artikel: '.$th->getMessage());
 
@@ -297,6 +326,28 @@ class ArticleController extends Controller
                 return redirect()->route('articles.index')->with('success', 'Artikel diperbarui & masuk antrean publish.');
             }
 
+            if ($request->string('action')->toString() === 'schedule') {
+                $wasScheduled = $article->isScheduled();
+                $this->articleService->schedule($article, Carbon::parse((string) $request->input('scheduled_at')));
+
+                $this->activityLogger->log(
+                    $wasScheduled ? ActivityAction::ARTICLE_RESCHEDULED : ActivityAction::ARTICLE_SCHEDULED,
+                    ($wasScheduled ? 'Mengubah jadwal publish artikel' : 'Menjadwalkan publish artikel')
+                        ." \"{$article->title}\" pada {$this->formatScheduleTime($article)}.",
+                    subject: $article,
+                    properties: ['scheduled_at' => $article->scheduled_at?->toIso8601String()],
+                );
+
+                Log::info('[Article] update+schedule selesai', [
+                    'article_id' => $article->id,
+                    'scheduled_at' => $article->scheduled_at?->toIso8601String(),
+                    'was_scheduled' => $wasScheduled,
+                ]);
+
+                return redirect()->route('articles.index')
+                    ->with('success', 'Jadwal publish disimpan: '.$this->formatScheduleTime($article).' WIB.');
+            }
+
             $this->activityLogger->log(
                 ActivityAction::ARTICLE_UPDATED,
                 "Memperbarui draft artikel \"{$article->title}\".",
@@ -313,6 +364,11 @@ class ArticleController extends Controller
             return $request->boolean('_force_draft')
                 ? redirect()->route('articles.edit', $article)->with('success', 'Draft berhasil disimpan.')
                 : redirect()->route('articles.index')->with('success', 'Artikel berhasil diperbarui.');
+        } catch (ValidationException $validation) {
+            // Gerbang publish/jadwal ditolak → pesan validasi apa adanya.
+            Log::info('[Article] update ditolak gerbang validasi', ['errors' => $validation->errors()]);
+
+            return back()->withErrors($validation->errors())->withInput();
         } catch (\Throwable $th) {
             Log::error('Gagal memperbarui artikel: '.$th->getMessage());
 
@@ -351,6 +407,103 @@ class ArticleController extends Controller
                 ? "Retry publish situs \"{$siteName}\" telah dijalankan."
                 : 'Retry publish untuk situs-situs yang gagal telah dijalankan.',
         );
+    }
+
+    /**
+     * Halaman Kalender Jadwal — month-view jadwal publish mendatang + riwayat
+     * terbit/gagal. Data event diambil via AJAX (articles.schedule.events).
+     */
+    public function calendar(Request $request): View|RedirectResponse
+    {
+        $companyId = ArticleContext::companyId();
+
+        if ($companyId === null) {
+            abort_unless($request->user()?->isSuperAdmin(), 403, 'Perusahaan tidak dapat ditentukan.');
+
+            // Super admin belum memilih perusahaan fokus → kembali ke pemilih.
+            return redirect()->route('articles.index');
+        }
+
+        $company = Company::findOrFail($companyId);
+
+        return view('articles.calendar', compact('company'));
+    }
+
+    /**
+     * JSON event kalender per bulan, terisolasi pada perusahaan konteks artikel.
+     */
+    public function scheduleEvents(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'year' => ['required', 'integer', 'min:2020', 'max:2100'],
+            'month' => ['required', 'integer', 'min:1', 'max:12'],
+        ]);
+
+        $companyId = ArticleContext::companyId();
+        abort_if($companyId === null, 403, 'Perusahaan tidak dapat ditentukan.');
+
+        $start = Carbon::create((int) $validated['year'], (int) $validated['month'], 1)->startOfMonth();
+        $end = $start->copy()->endOfMonth();
+
+        return response()
+            ->json(['events' => $this->articleService->calendarEvents($companyId, $start, $end)])
+            ->header('Cache-Control', 'no-store, private');
+    }
+
+    /**
+     * Ubah waktu jadwal publish (reschedule) — dipakai kalender (drag & drop)
+     * dan endpoint aksi cepat lain. Mendukung respons JSON maupun redirect biasa.
+     */
+    public function updateSchedule(Request $request, Article $article): JsonResponse|RedirectResponse
+    {
+        $validated = $request->validate([
+            'scheduled_at' => ['required', 'date'],
+        ]);
+
+        $wasScheduled = $article->isScheduled();
+
+        $this->articleService->schedule($article, Carbon::parse((string) $validated['scheduled_at']));
+
+        $this->activityLogger->log(
+            $wasScheduled ? ActivityAction::ARTICLE_RESCHEDULED : ActivityAction::ARTICLE_SCHEDULED,
+            ($wasScheduled ? 'Mengubah jadwal publish artikel' : 'Menjadwalkan publish artikel')
+                ." \"{$article->title}\" pada {$this->formatScheduleTime($article)}.",
+            subject: $article,
+            properties: ['scheduled_at' => $article->scheduled_at?->toIso8601String()],
+        );
+
+        $message = 'Jadwal publish dipindah ke '.$this->formatScheduleTime($article).' WIB.';
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'message' => $message,
+                'scheduled_at' => $article->scheduled_at?->toIso8601String(),
+            ]);
+        }
+
+        return back()->with('success', $message);
+    }
+
+    /**
+     * Batalkan jadwal publish → artikel kembali ke status wajar (draft).
+     */
+    public function cancelSchedule(Request $request, Article $article): JsonResponse|RedirectResponse
+    {
+        $this->articleService->cancelSchedule($article);
+
+        $this->activityLogger->log(
+            ActivityAction::ARTICLE_SCHEDULE_CANCELLED,
+            "Membatalkan jadwal publish artikel \"{$article->title}\".",
+            subject: $article,
+        );
+
+        $message = 'Jadwal publish dibatalkan. Artikel kembali ke draft.';
+
+        if ($request->wantsJson()) {
+            return response()->json(['message' => $message, 'status' => $article->status]);
+        }
+
+        return back()->with('success', $message);
     }
 
     /**
@@ -408,6 +561,14 @@ class ArticleController extends Controller
                 ->with('error', 'Terjadi kesalahan sistem. Gagal hapus publikasi situs.')
                 ->withInput();
         }
+    }
+
+    /**
+     * Format tampilan waktu jadwal (WIB) untuk pesan & activity log.
+     */
+    private function formatScheduleTime(Article $article): string
+    {
+        return $article->scheduled_at?->format('d M Y, H:i') ?? '-';
     }
 
     /**

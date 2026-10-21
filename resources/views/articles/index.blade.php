@@ -176,31 +176,55 @@
                             :class="articleStatus('{{ $article->id }}') === 'published' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60'
                                 : (articleStatus('{{ $article->id }}') === 'queued' ? 'bg-amber-50 text-amber-700 border border-amber-200/60'
                                 : (articleStatus('{{ $article->id }}') === 'failed' ? 'bg-rose-50 text-rose-700 border border-rose-200/60'
-                                : 'bg-slate-50 text-slate-700 border border-slate-200/60'))"
+                                : (articleStatus('{{ $article->id }}') === 'scheduled' ? 'bg-violet-50 text-violet-700 border border-violet-200/60'
+                                : 'bg-slate-50 text-slate-700 border border-slate-200/60')))"
                             x-text="statusLabel(articleStatus('{{ $article->id }}'))"></span>
+                        <span x-cloak
+                            x-show="articleStatus('{{ $article->id }}') === 'scheduled'"
+                            class="block mt-1 text-[9px] font-medium text-violet-600">
+                            {{ optional($article->scheduled_at)->format('d M Y, H:i') }} WIB
+                        </span>
                     </td>
                     <td class="px-4 py-3 whitespace-nowrap">
                         <div class="flex items-center justify-end gap-1.5">
-                            {{-- Tombol Edit --}}
+                            {{-- Tombol Edit / Ubah jadwal --}}
                             <a href="{{ route('articles.edit', $article) }}"
                                 class="p-1.5 inline-flex items-center justify-center bg-amber-50 hover:bg-amber-100 text-brand rounded transition"
-                                title="Edit">
+                                title="Edit & ubah jadwal">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                 </svg>
                             </a>
 
-                            {{-- Tombol Publish --}}
-                            <form x-cloak x-show="articleStatus('{{ $article->id }}') === 'draft' && articleScore('{{ $article->id }}') >= 80 && articleReadabilityScore('{{ $article->id }}') >= 80"
+                            {{-- Tombol Publish (draft, atau jadwal yang diambil lebih awal) --}}
+                            <form x-cloak
+                                x-show="(articleStatus('{{ $article->id }}') === 'draft' || articleStatus('{{ $article->id }}') === 'scheduled') && articleScore('{{ $article->id }}') >= 80 && articleReadabilityScore('{{ $article->id }}') >= 80"
                                 action="{{ route('articles.publish', $article) }}" method="POST" class="inline-flex">
                                 @csrf
                                 <button type="submit"
                                     class="p-1.5 inline-flex items-center justify-center bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded transition"
-                                    title="Publish ke WordPress (buat post di semua situs target)">
+                                    title="Publish ke WordPress sekarang (untuk draft / ambil jadwal lebih awal)">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                                    </svg>
+                                </button>
+                            </form>
+
+                            {{-- Tombol Batalkan jadwalkan --}}
+                            <form x-cloak x-show="articleStatus('{{ $article->id }}') === 'scheduled'"
+                                action="{{ route('articles.schedule.cancel', $article) }}" method="POST"
+                                class="inline-flex"
+                                onsubmit="return confirm('Batalkan jadwal publish? Artikel akan kembali ke draft.');">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit"
+                                    class="p-1.5 inline-flex items-center justify-center bg-violet-50 hover:bg-violet-100 text-violet-600 rounded transition"
+                                    title="Batalkan jadwal publish">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M6 18L18 6M6 6l12 12" />
                                     </svg>
                                 </button>
                             </form>
@@ -318,6 +342,7 @@
                 statusLabel(status) {
                     return {
                         draft: 'Draft',
+                        scheduled: 'Terjadwal',
                         queued: 'Antrean',
                         published: 'Terbit',
                         failed: 'Gagal',
@@ -328,15 +353,32 @@
                     return this.statusLabel(status);
                 },
 
-                // Ada artikel yang masih berstatus antrean (belum selesai dipublish)?
-                hasPending() {
-                    return Object.values(this.articles).some(a => a.status === 'queued');
+                /**
+                 * Perlu di-poll bila:
+                 *  - status queued (proses publish berjalan), ATAU
+                 *  - status scheduled DAN jatuh tempo dalam <= 15 menit ke depan
+                 *    (menangkap transisi scheduled → queued/failed tepat waktu tanpa
+                 *    polling sia-sia untuk jadwal yang masih jauh).
+                 */
+                isPollable(a) {
+                    if (a.status === 'queued') return true;
+
+                    if (a.status === 'scheduled' && a.scheduled_at) {
+                        return new Date(a.scheduled_at).getTime() - Date.now() <= 15 * 60 * 1000;
+                    }
+
+                    return false;
                 },
 
-                // Daftar id artikel yang masih perlu di-poll (statusnya queued).
+                // Ada artikel yang masih perlu dipantau (antrean / jadwal dekat)?
+                hasPending() {
+                    return Object.values(this.articles).some(a => this.isPollable(a));
+                },
+
+                // Daftar id artikel yang masih perlu di-poll.
                 pendingIds() {
                     return Object.keys(this.articles)
-                        .filter(id => this.articleStatus(id) === 'queued')
+                        .filter(id => this.isPollable(this.article(id)))
                         .map(id => parseInt(id, 10));
                 },
 

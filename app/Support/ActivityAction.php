@@ -19,6 +19,12 @@ final class ActivityAction
 
     public const ARTICLE_SITE_REMOVED = 'article.site_removed';
 
+    public const ARTICLE_SCHEDULED = 'article.scheduled';
+
+    public const ARTICLE_RESCHEDULED = 'article.rescheduled';
+
+    public const ARTICLE_SCHEDULE_CANCELLED = 'article.schedule_cancelled';
+
     public const CATEGORY_CREATED = 'category.created';
 
     public const CATEGORY_UPDATED = 'category.updated';
@@ -50,6 +56,9 @@ final class ActivityAction
         self::ARTICLE_UPDATED => 'Perbarui Artikel',
         self::ARTICLE_DELETED => 'Hapus Artikel',
         self::ARTICLE_SITE_REMOVED => 'Hapus Publikasi Situs',
+        self::ARTICLE_SCHEDULED => 'Jadwalkan Publish',
+        self::ARTICLE_RESCHEDULED => 'Ubah Jadwal Publish',
+        self::ARTICLE_SCHEDULE_CANCELLED => 'Batalkan Jadwal Publish',
         self::CATEGORY_CREATED => 'Buat Kategori',
         self::CATEGORY_UPDATED => 'Perbarui Kategori',
         self::CATEGORY_DELETED => 'Hapus Kategori',

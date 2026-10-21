@@ -7,9 +7,12 @@ use App\Models\Article;
 use App\Models\ArticleSitePublication;
 use App\Models\Scopes\TenantScope;
 use App\Models\Tag;
+use Carbon\CarbonInterface;
+use DateTimeInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -21,6 +24,17 @@ class ArticleService
      * Skor SEO & Readability minimal agar artikel boleh diantrekan / dipublikasikan.
      */
     private const MIN_PUBLISH_SCORE = 80;
+
+    /**
+     * Jeda minimal (menit) antara sekarang dan waktu jadwal publish.
+     * Memberi ruang bagi scheduler per-menit untuk mengklaim tanpa race.
+     */
+    private const MIN_LEAD_MINUTES = 5;
+
+    /**
+     * Horizon maksimal penjadwalan dalam hari (setahun).
+     */
+    private const MAX_HORIZON_DAYS = 365;
 
     public function __construct(
         private readonly SeoAnalyzerService $seoAnalyzer,
@@ -118,11 +132,198 @@ class ArticleService
     }
 
     /**
-     * Gerbang publikasi: hitung ulang skor SEO + Readability server-side sebelum mengantrekan job.
+     * Gerbang publikasi: hitung ulang skor SEO + Readability server-side lalu
+     * antrekan job ke seluruh situs target. Membersihkan jadwal aktif (bila ada)
+     * karena artikel kini dipercepat publish segera.
      */
     public function publish(Article $article): Article
     {
         $start = microtime(true);
+
+        $analysis = $this->assertPublishable($article);
+        $this->queuePublication($article, $analysis);
+
+        Log::info('[ArticleService] publish selesai', [
+            'article_id' => $article->id,
+            'seo_score' => $analysis['seo_score'],
+            'readability_score' => $analysis['readability_score'],
+            'total_ms' => round((microtime(true) - $start) * 1000, 2),
+        ]);
+
+        return $article->refresh();
+    }
+
+    /**
+     * Jadwalkan publish artikel pada waktu tertentu — atau UBAH waktu jadwal yang
+     * sudah ada (reschedule, ditentukan dari status saat ini).
+     *
+     * Gerbang yang sama dengan publish() (skor ≥ 80 + minimal satu situs target)
+     * dipasang SEKARANG, dan akan dicek ULANG saat jatuh tempo oleh publishDue(),
+     * sehingga artikel yang diedit setelah dijadwalkan tetap terjaga kualitasnya.
+     *
+     * @throws ValidationException
+     */
+    public function schedule(Article $article, DateTimeInterface $at): CarbonInterface
+    {
+        $scheduledAt = Carbon::instance($at);
+        $wasScheduled = $article->isScheduled();
+
+        if ($article->status === 'queued') {
+            throw ValidationException::withMessages([
+                'status' => 'Artikel sedang diproses di antrean publish. Tunggu hingga selesai sebelum menjadwalkan.',
+            ]);
+        }
+
+        $earliest = now()->addMinutes(self::MIN_LEAD_MINUTES);
+        $latest = now()->addDays(self::MAX_HORIZON_DAYS);
+
+        if ($scheduledAt->lessThan($earliest)) {
+            throw ValidationException::withMessages([
+                'scheduled_at' => 'Waktu jadwal minimal '.self::MIN_LEAD_MINUTES.' menit dari sekarang.',
+            ]);
+        }
+
+        if ($scheduledAt->greaterThan($latest)) {
+            throw ValidationException::withMessages([
+                'scheduled_at' => 'Waktu jadwal maksimal 1 tahun ('.self::MAX_HORIZON_DAYS.' hari) dari sekarang.',
+            ]);
+        }
+
+        $this->assertPublishable($article);
+
+        $article->update([
+            'status' => 'scheduled',
+            'scheduled_at' => $scheduledAt,
+        ]);
+
+        Log::info($wasScheduled ? '[ArticleService] reschedule' : '[ArticleService] schedule', [
+            'article_id' => $article->id,
+            'scheduled_at' => $scheduledAt->toIso8601String(),
+            'site_count' => $article->sitePublications()->count(),
+        ]);
+
+        return $article->scheduled_at;
+    }
+
+    /**
+     * Batalkan jadwal publish. Status kembali ke agregat wajar: draft bila belum
+     * ada situs terbit, atau published bila artikel ternyata sudah live (dibatalkan
+     * setelah sempat dijadwalkan ulang di atas artikel yang sudah terbit).
+     *
+     * @throws ValidationException
+     */
+    public function cancelSchedule(Article $article): Article
+    {
+        if (! $article->isScheduled()) {
+            throw ValidationException::withMessages([
+                'status' => 'Artikel tidak sedang dalam jadwal publish.',
+            ]);
+        }
+
+        $statuses = $article->sitePublications()->pluck('status');
+
+        $target = match (true) {
+            $statuses->isEmpty() => 'draft',
+            $statuses->every(fn ($s) => $s === 'published') => 'published',
+            $statuses->contains('failed') => 'failed',
+            $statuses->contains('queued') => 'queued',
+            default => 'draft',
+        };
+
+        $article->update(['status' => $target, 'scheduled_at' => null]);
+
+        Log::info('[ArticleService] cancelSchedule', [
+            'article_id' => $article->id,
+            'status_after' => $target,
+        ]);
+
+        return $article->refresh();
+    }
+
+    /**
+     * Klaim & antrekan seluruh artikel yang jadwalnya sudah jatuh tempo.
+     *
+     * Dirancang IDEMPOTEN untuk cron per-menit: klaim memakai UPDATE bersyarat
+     * (WHERE status = 'scheduled'), sehingga dua run bersamaan tidak akan
+     * menggandakan dispatch. Jatuh tempo yang terlewat (server sempat mati) tetap
+     * terkirim pada run berikutnya karena query selalu memakai scheduled_at <= now().
+     *
+     * @return array<int, int> ID artikel yang berhasil diantrekan
+     */
+    public function publishDue(int $limit = 50): array
+    {
+        $dueIds = Article::withoutGlobalScope(TenantScope::class)
+            ->where('status', 'scheduled')
+            ->whereNotNull('scheduled_at')
+            ->where('scheduled_at', '<=', now())
+            ->orderBy('scheduled_at')
+            ->limit(max(1, $limit))
+            ->pluck('id')
+            ->all();
+
+        $processed = [];
+
+        foreach ($dueIds as $articleId) {
+            // Klaim atomik: hanya proses yang memenangkan UPDATE lanjut dispatch.
+            $claimed = Article::withoutGlobalScope(TenantScope::class)
+                ->whereKey($articleId)
+                ->where('status', 'scheduled')
+                ->update(['status' => 'queued']);
+
+            if ($claimed === 0) {
+                continue; // sudah diklaim proses lain (cron kembar) — jangan digandakan.
+            }
+
+            $article = Article::withoutGlobalScope(TenantScope::class)
+                ->with(['seoMeta', 'sitePublications'])
+                ->find($articleId);
+
+            if ($article === null) {
+                continue;
+            }
+
+            try {
+                // Gerbang dicek ULANG saat jatuh tempo: skor bisa turun bila
+                // artikel diedit setelah dijadwalkan.
+                $this->queuePublication($article, $this->assertPublishable($article));
+                $processed[] = $articleId;
+            } catch (ValidationException $validation) {
+                // GATE DITOLAK → hentikan siklus (status failed, bukan loop per menit).
+                $article->update(['status' => 'failed']);
+
+                Log::warning('[ArticleScheduler] Jadwal jatuh tempo diblokir gerbang publish', [
+                    'article_id' => $articleId,
+                    'errors' => $validation->errors(),
+                ]);
+            } catch (\Throwable $throwable) {
+                $article->update(['status' => 'failed']);
+
+                Log::error('[ArticleScheduler] Gagal memproses jadwal jatuh tempo', [
+                    'article_id' => $articleId,
+                    'exception' => get_class($throwable),
+                    'message' => $throwable->getMessage(),
+                ]);
+            }
+        }
+
+        if ($processed !== []) {
+            Log::info('[ArticleScheduler] Jadwal jatuh tempo diantrekan', ['article_ids' => $processed]);
+        }
+
+        return $processed;
+    }
+
+    /**
+     * Gerbang publikasi (server-side): hitung ulang skor SEO + Readability dan
+     * pastikan artikel punya minimal satu situs target. Dipakai bersama oleh
+     * publish(), schedule(), dan publishDue() — satu sumber kebenaran (DRY).
+     *
+     * @return array<string, mixed> hasil analisis SEO terbaru
+     *
+     * @throws ValidationException
+     */
+    private function assertPublishable(Article $article): array
+    {
         $analysis = $this->seoAnalyzer->analyze($this->seoInput($article));
 
         if ($analysis['seo_score'] < self::MIN_PUBLISH_SCORE) {
@@ -137,19 +338,32 @@ class ArticleService
             ]);
         }
 
-        $siteIds = $article->sitePublications()->pluck('wp_site_id');
-
-        if ($siteIds->isEmpty()) {
+        if ($article->sitePublications()->doesntExist()) {
             throw ValidationException::withMessages([
                 'wp_site_ids' => 'Artikel belum memiliki situs WordPress target.',
             ]);
         }
+
+        return $analysis;
+    }
+
+    /**
+     * Antrekan publikasi ke seluruh situs target: perbarui skor hasil analisis
+     * terbaru, tandai status queued (jadwal aktif dibersihkan), lalu dispatch satu
+     * job per situs agar kegagalan satu situs tidak menggagalkan yang lain.
+     *
+     * @param  array<string, mixed>  $analysis
+     */
+    private function queuePublication(Article $article, array $analysis): void
+    {
+        $siteIds = $article->sitePublications()->pluck('wp_site_id');
 
         DB::transaction(function () use ($article, $analysis, $siteIds): void {
             $article->update([
                 'seo_score' => $analysis['seo_score'],
                 'readability_score' => $analysis['readability_score'],
                 'status' => 'queued',
+                'scheduled_at' => null,
             ]);
 
             $article->sitePublications()
@@ -162,15 +376,10 @@ class ArticleService
             PublishArticleToWordPressJob::dispatch($article->id, (int) $siteId);
         }
 
-        Log::info('[ArticleService] publish selesai', [
+        Log::info('[ArticleService] queuePublication', [
             'article_id' => $article->id,
             'site_count' => $siteIds->count(),
-            'seo_score' => $analysis['seo_score'],
-            'readability_score' => $analysis['readability_score'],
-            'total_ms' => round((microtime(true) - $start) * 1000, 2),
         ]);
-
-        return $article->refresh();
     }
 
     /**
@@ -190,6 +399,13 @@ class ArticleService
         $siteIds = $query->pluck('wp_site_id');
 
         if ($siteIds->isEmpty()) {
+            // Kegagalan tingkat ARTIKEL (mis. gerbang jatuh tempo ditolak → status
+            // failed tanpa baris situs yang ber-status failed): antrekan ulang lewat
+            // gerbang publish penuh agar skor & situs divalidasi ulang.
+            if ($siteId === null && $article->status === 'failed' && $article->sitePublications()->exists()) {
+                return $this->publish($article);
+            }
+
             throw ValidationException::withMessages([
                 'status' => 'Tidak ada publikasi situs yang bisa di-retry.',
             ]);
@@ -273,6 +489,12 @@ class ArticleService
      */
     private function recomputeArticleStatus(Article $article): void
     {
+        // Jadwal aktif punya otoritas sendiri: baris per-situs masih 'draft' dan
+        // tidak boleh menimpa status 'scheduled' (mis. saat situs target dihapus).
+        if ($article->isScheduled()) {
+            return;
+        }
+
         $statuses = $article->sitePublications()->pluck('status');
 
         if ($statuses->isEmpty()) {
@@ -288,6 +510,128 @@ class ArticleService
         };
 
         $article->update(['status' => $status]);
+    }
+
+    /**
+     * Event kalender satu bulan untuk modul artikel, terisolasi pada satu company:
+     *  - 'scheduled' : jadwal publish aktif pada bulan tersebut
+     *  - 'published' : riwayat terbit (waktu = sync pertama pada bulan tersebut)
+     *  - 'failed'    : riwayat gagal (waktu = update terakhir artikel)
+     *
+     * @param  CarbonInterface  $start  awal bulan (sudah startOfMonth)
+     * @param  CarbonInterface  $end    akhir bulan (sudah endOfMonth)
+     * @return array<int, array<string, mixed>>
+     */
+    public function calendarEvents(int $companyId, CarbonInterface $start, CarbonInterface $end): array
+    {
+        $withSiteNames = ['sitePublications.wpSite' => fn ($q) => $q
+            ->withoutGlobalScope(TenantScope::class)
+            ->where('company_id', $companyId)];
+
+        $events = [];
+
+        // 1) Jadwal aktif pada bulan tersebut.
+        Article::withoutGlobalScope(TenantScope::class)
+            ->with($withSiteNames)
+            ->where('company_id', $companyId)
+            ->where('status', 'scheduled')
+            ->whereNotNull('scheduled_at')
+            ->whereBetween('scheduled_at', [$start, $end])
+            ->get()
+            ->each(function (Article $article) use (&$events): void {
+                $events[] = $this->calendarEvent(
+                    $article,
+                    'scheduled',
+                    $article->scheduled_at,
+                    $this->siteNamesForCalendar($article, 'scheduled'),
+                );
+            });
+
+        // 2) Riwayat terbit: publikasi dengan synced_at pada bulan tersebut.
+        Article::withoutGlobalScope(TenantScope::class)
+            ->with($withSiteNames)
+            ->where('company_id', $companyId)
+            ->whereHas('sitePublications', fn ($q) => $q
+                ->where('status', 'published')
+                ->whereBetween('synced_at', [$start, $end]))
+            ->get()
+            ->each(function (Article $article) use (&$events, $start, $end): void {
+                $published = $article->sitePublications
+                    ->where('status', 'published')
+                    ->filter(fn (ArticleSitePublication $pub) => $pub->synced_at !== null
+                        && $pub->synced_at->betweenIncluded($start, $end));
+
+                if ($published->isEmpty()) {
+                    return;
+                }
+
+                $events[] = $this->calendarEvent(
+                    $article,
+                    'published',
+                    $published->min(fn (ArticleSitePublication $pub) => $pub->synced_at),
+                    $published->pluck('wpSite.site_name')->filter()->values()->all(),
+                );
+            });
+
+        // 3) Riwayat gagal: artikel berstatus failed yang diperbarui pada bulan tersebut.
+        Article::withoutGlobalScope(TenantScope::class)
+            ->with($withSiteNames)
+            ->where('company_id', $companyId)
+            ->where('status', 'failed')
+            ->whereBetween('updated_at', [$start, $end])
+            ->get()
+            ->each(function (Article $article) use (&$events): void {
+                $events[] = $this->calendarEvent(
+                    $article,
+                    'failed',
+                    $article->updated_at,
+                    $this->siteNamesForCalendar($article, 'failed'),
+                );
+            });
+
+        usort($events, fn (array $a, array $b) => strcmp($a['start'], $b['start']));
+
+        return $events;
+    }
+
+    /**
+     * Rakit satu event kalender dari artikel + waktu kejadiannya.
+     *
+     * @param  CarbonInterface|\DateTimeInterface  $at
+     * @param  array<int, string>  $siteNames
+     * @return array<string, mixed>
+     */
+    private function calendarEvent(Article $article, string $status, CarbonInterface $at, array $siteNames): array
+    {
+        return [
+            'id' => $status.'-'.$article->id,
+            'article_id' => $article->id,
+            'title' => $article->title,
+            'slug' => $article->slug,
+            'status' => $status,
+            'date' => $at->format('Y-m-d'),
+            'time' => $at->format('H:i'),
+            'start' => $at->toIso8601String(),
+            'sites' => $siteNames,
+            'edit_url' => route('articles.edit', $article),
+        ];
+    }
+
+    /**
+     * Nama situs terkait untuk subtitle event kalender, sesuai status event.
+     *
+     * @return array<int, string>
+     */
+    private function siteNamesForCalendar(Article $article, string $status): array
+    {
+        return $article->sitePublications
+            ->filter(fn (ArticleSitePublication $pub) => $status === 'scheduled'
+                ? true
+                : $pub->status === $status)
+            ->pluck('wpSite.site_name')
+            ->filter()
+            ->values()
+            ->all();
     }
 
     /**
