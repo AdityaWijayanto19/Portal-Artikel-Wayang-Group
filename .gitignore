@@ -22,3 +22,4 @@ yarn-error.log
 /.zed
 .claude
 .htaccess
+deploy-assets.ps1
