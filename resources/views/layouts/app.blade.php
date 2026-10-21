@@ -27,6 +27,10 @@
             --color-sidebar: {{ $brandSidebar }};
             --color-sidebar-text: {{ $brandSidebarText }};
         }
+
+        [x-cloak] {
+            display: none !important;
+        }
     </style>
 </head>
 

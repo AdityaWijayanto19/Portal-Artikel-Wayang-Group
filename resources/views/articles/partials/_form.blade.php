@@ -13,6 +13,11 @@
         ['value' => 'draft', 'label' => 'Draft (simpan saja)'],
         ['value' => 'published', 'label' => 'Published (kirim ke WordPress)'],
     ];
+
+    // Simpan server sukses → draft milik server, buang cadangan localStorage.
+    $clearDraft = (bool) session('success');
+    // Simpan server gagal (validasi/error) → form sudah terisi old(), cadangkan ulang ke localStorage.
+    $rescueDraft = $errors->any() || (bool) session('error');
 @endphp
 
 <div x-data="articleEditor({
@@ -26,6 +31,8 @@
     status: @js($selectedStatus),
     articleId: @js($isEdit ? $article->id : null),
     companyId: @js($company->id),
+    clearDraft: @js($clearDraft),
+    rescueDraft: @js($rescueDraft),
     checkKeywordUrl: @js(route('articles.check-keyword')),
 })" @content-updated="onContentChange($event)"
     class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -542,32 +549,32 @@
             <x-tag-input name="tags" label="Tag" :value="$selectedTagNames" />
         </div>
     </div>
-</div>
 
-{{-- ================= AUTO-SAVE INDICATOR ================= --}}
-<div x-cloak x-transition
-    class="fixed bottom-4 right-4 z-40 flex items-center gap-2 px-3 py-2 rounded-lg shadow-sm text-xs"
-    :class="lastSaveAt ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : (dirty ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-slate-50 text-slate-400 border border-slate-200')">
-    <template x-if="lastSaveAt">
-        <span class="flex items-center gap-1.5">
-            <svg class="w-3.5 h-3.5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-            </svg>
-            Draft tersimpan <span x-text="timeAgo(lastSaveAt)"></span>
-        </span>
-    </template>
-    <template x-if="!lastSaveAt && dirty">
-        <span class="flex items-center gap-1.5">
-            <span class="w-2 h-2 rounded-full bg-amber-400"></span>
-            Ada perubahan belum tersimpan
-        </span>
-    </template>
-    <template x-if="!lastSaveAt && !dirty">
-        <span class="flex items-center gap-1.5">
-            <span class="w-2 h-2 rounded-full bg-slate-300"></span>
-            Belum ada perubahan
-        </span>
-    </template>
+    {{-- ================= AUTO-SAVE INDICATOR ================= --}}
+    <div x-cloak x-transition
+        class="fixed bottom-4 right-4 z-40 flex items-center gap-2 px-3 py-2 rounded-lg shadow-sm text-xs"
+        :class="lastSaveAt ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : (dirty ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-slate-50 text-slate-400 border border-slate-200')">
+        <template x-if="lastSaveAt">
+            <span class="flex items-center gap-1.5">
+                <svg class="w-3.5 h-3.5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Draft tersimpan <span x-text="timeAgo(lastSaveAt)"></span>
+            </span>
+        </template>
+        <template x-if="!lastSaveAt && dirty">
+            <span class="flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+                Ada perubahan belum tersimpan
+            </span>
+        </template>
+        <template x-if="!lastSaveAt && !dirty">
+            <span class="flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-slate-300"></span>
+                Belum ada perubahan
+            </span>
+        </template>
+    </div>
 </div>
 
 @push('scripts')
@@ -725,11 +732,24 @@
                     this._initialContent = this.content;
                     this.dirty = false;
                     this._ready = false;
+
+                    // Simpan server sukses → buang cadangan browser supaya banner lama tak muncul lagi.
+                    if (initial.clearDraft) this.clearStoredDrafts();
                     this.checkExistingDraft();
                     this.setupAutoSave();
 
                     // Grace period — skip TinyMCE init events & browser autofill
                     setTimeout(() => { this._ready = true; }, 600);
+
+                    // Server menolak simpan (validasi/error) → form terisi old(),
+                    // cadangkan ulang ke localStorage biar aman kalau tab ditutup.
+                    if (initial.rescueDraft) setTimeout(() => this.saveDraft(), 800);
+
+                    window.addEventListener('beforeunload', (e) => {
+                        if (!this.dirty) return;
+                        e.preventDefault();
+                        e.returnValue = '';
+                    });
 
                     window.addEventListener('article-draft:categories-changed', (e) => {
                         this.selectedCategories = e.detail.categories || [];
@@ -1130,13 +1150,38 @@
                 setupAutoSave() {
                     const self = this;
                     const form = this.$el.closest('form');
-                    if (form) {
-                        form.addEventListener('input', function () {
-                            if (!self._ready) return;
-                            self.dirty = true;
-                            self.scheduleSave();
-                        });
-                    }
+                    if (!form) return;
+
+                    form.addEventListener('input', function () {
+                        if (!self._ready) return;
+                        self.dirty = true;
+                        self.scheduleSave();
+                    });
+
+                    // Tiap submit (tombol Simpan Draft / Publish, maupun Enter):
+                    // 1. tandai `_force_draft` agar server mengarahkan kembali ke editor,
+                    // 2. jaga `action` selalu terisi (submit non-Alpine pun aman),
+                    // 3. serahkan kepemilikan draft ke server — buang cadangan browser
+                    //    supaya banner "Draft ditemukan" tak muncul lagi sesudahnya.
+                    form.addEventListener('submit', function () {
+                        let flag = form.querySelector('input[name="_force_draft"]');
+                        if (!flag) {
+                            flag = document.createElement('input');
+                            flag.type = 'hidden';
+                            flag.name = '_force_draft';
+                            form.appendChild(flag);
+                        }
+                        flag.value = '1';
+
+                        const actionInput = form.querySelector('input[name="action"]');
+                        if (actionInput && !actionInput.value) actionInput.value = 'draft';
+
+                        clearTimeout(self._saveTimer);
+                        self.clearStoredDrafts();
+                        self.dirty = false;
+                        self.showRestoreBanner = false;
+                        self.draftData = null;
+                    });
                 },
 
                 scheduleSave() {
@@ -1162,9 +1207,19 @@
                         };
                         localStorage.setItem(this.storageKey, JSON.stringify(data));
                         this.lastSaveAt = new Date().toISOString();
+                        this.dirty = false;
                     } catch (e) {
                         console.warn('[AutoSave] Gagal simpan draft:', e);
                     }
+                },
+
+                clearStoredDrafts() {
+                    try {
+                        const base = 'article_draft_' + (initial.companyId || 0) + '_';
+                        localStorage.removeItem(base + 'new');
+                        localStorage.removeItem(base + (initial.articleId || 'new'));
+                        localStorage.removeItem(this.storageKey);
+                    } catch (e) {}
                 },
 
                 checkExistingDraft() {
@@ -1228,7 +1283,7 @@
                 },
 
                 discardDraft() {
-                    try { localStorage.removeItem(this.storageKey); } catch (e) {}
+                    this.clearStoredDrafts();
                     this.showRestoreBanner = false;
                     this.draftData = null;
                 },
@@ -1241,26 +1296,6 @@
                     if (diff < 86400) return Math.floor(diff / 3600) + ' jam lalu';
                     return Math.floor(diff / 86400) + ' hari lalu';
                 },
-
-
-
-                submitAsDraft() {
-                    this.dirty = false;
-                    const form = this.$el.closest('form');
-                    if (!form) return;
-                    let actionInput = form.querySelector('input[name="action"]');
-                    if (actionInput) actionInput.value = 'draft';
-                    let flag = form.querySelector('input[name="_force_draft"]');
-                    if (!flag) {
-                        flag = document.createElement('input');
-                        flag.type = 'hidden';
-                        flag.name = '_force_draft';
-                        form.appendChild(flag);
-                    }
-                    flag.value = '1';
-                    form.submit();
-                },
-
 
             };
         }
