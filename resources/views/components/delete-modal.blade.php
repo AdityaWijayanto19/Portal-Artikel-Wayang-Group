@@ -1,6 +1,7 @@
 @props([
     'action',
     'title' => 'Hapus Data?',
+    'confirmDisabled' => false,
 ])
 
 <div x-data="{ open: false }" class="inline-block">
@@ -66,19 +67,28 @@
                     </div>
 
                     {{-- Actions / Buttons --}}
-                    <div class="mt-6 sm:flex sm:flex-row-reverse gap-3">
-                        <form action="{{ $action }}" method="POST" class="inline-flex w-full sm:w-auto">
+                    <div class="mt-6">
+                        <form action="{{ $action }}" method="POST">
                             @csrf
                             @method('DELETE')
-                            <button type="submit"
-                                class="inline-flex w-full justify-center rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-rose-500 transition">
-                                Ya, Hapus
-                            </button>
+
+                            {{-- Slot opsional untuk field tambahan yang ikut terkirim
+                                 (mis. pemindahan artikel ke user lain saat hapus pengguna) --}}
+                            @isset($extra)
+                                <div class="mb-4">{{ $extra }}</div>
+                            @endisset
+
+                            <div class="sm:flex sm:flex-row-reverse gap-3">
+                                <button type="submit" @disabled($confirmDisabled)
+                                    class="inline-flex w-full justify-center rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-rose-500 transition disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-rose-600">
+                                    Ya, Hapus
+                                </button>
+                                <button type="button" @click="open = false"
+                                    class="mt-3 inline-flex w-full justify-center rounded-xl bg-slate-100 px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-200 transition sm:mt-0 sm:w-auto">
+                                    Batal
+                                </button>
+                            </div>
                         </form>
-                        <button type="button" @click="open = false"
-                            class="mt-3 inline-flex w-full justify-center rounded-xl bg-slate-100 px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-200 transition sm:mt-0 sm:w-auto">
-                            Batal
-                        </button>
                     </div>
 
                 </div>

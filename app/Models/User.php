@@ -48,6 +48,18 @@ class User extends Authenticatable
     }
 
     /**
+     * Artikel yang ditulis user ini (fk: articles.user_id).
+     *
+     * Relasi ini sengaja TIDAK memakai cascade: penghapusan user harus memindahkan
+     * artikelnya terlebih dahulu (lihat UserService::deleteUser()), dan FK di database
+     * memakai RESTRICT sebagai jaring pengaman.
+     */
+    public function articles(): HasMany
+    {
+        return $this->hasMany(Article::class, 'user_id');
+    }
+
+    /**
      * Filter user berdasarkan tenant aktif.
      *
      * Menerima 'all' / null (super_admin lintas tenant → tanpa filter) atau ID company.

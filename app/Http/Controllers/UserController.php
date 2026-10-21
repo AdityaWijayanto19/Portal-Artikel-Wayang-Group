@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\UserHasArticlesException;
 use App\Http\Requests\User\StoreUserRequest;
 use App\Http\Requests\User\UpdateUserRequest;
 use App\Models\Company;
+use App\Models\Scopes\TenantScope;
 use App\Models\User;
 use App\Services\ActivityLogger;
 use App\Services\UserService;
@@ -48,10 +50,19 @@ class UserController extends Controller
             });
         }
 
-        $users = $query->orderBy('created_at', 'desc')->paginate(10)->withQueryString();
+        $users = $query->withCount(['articles' => fn ($q) => $q->withoutGlobalScope(TenantScope::class)])
+            ->orderBy('created_at', 'desc')->paginate(10)->withQueryString();
         $roles = Role::where('name', '!=', 'super_admin')->get();
 
-        return view('users.index', compact('users', 'roles'));
+        // Kandidat penerima pemindahan artikel ketika user dihapus. Dikirim satu kali
+        // untuk seluruh baris; penyaringan "hanya satu perusahaan" dilakukan per baris
+        // di view berdasarkan irisan companyIds() — lihat resources/views/users/index.blade.php.
+        $candidateUsers = User::with(['companies', 'roles'])
+            ->forTenant($activeCompanyId)
+            ->orderBy('name')
+            ->get();
+
+        return view('users.index', compact('users', 'roles', 'candidateUsers'));
     }
 
     public function create()
@@ -178,7 +189,7 @@ class UserController extends Controller
         }
     }
 
-    public function destroy(User $user): RedirectResponse
+    public function destroy(Request $request, User $user): RedirectResponse
     {
         try {
             $currentUser = auth()->user();
@@ -192,15 +203,30 @@ class UserController extends Controller
             }
 
             $userName = $user->name;
-            $user->delete();
+            $transferToUserId = $request->filled('transfer_user_id')
+                ? (int) $request->input('transfer_user_id')
+                : null;
+
+            // Artikel tidak pernah ikut terhapus: bila user masih punya artikel,
+            // service akan memindahkannya ke penerima terlebih dahulu.
+            $result = $this->userService->deleteUser($user, $transferToUserId);
+
+            $description = "Menghapus pengguna \"{$userName}\".";
+            if ($result['articles_transferred'] > 0) {
+                $description .= " {$result['articles_transferred']} artikel dipindahkan ke \"{$result['recipient']->name}\".";
+            }
 
             $this->activityLogger->log(
                 ActivityAction::USER_DELETED,
-                "Menghapus pengguna \"{$userName}\".",
+                $description,
                 subject: $user,
             );
 
             return redirect()->route('users.index')->with('success', 'User berhasil dihapus.');
+        } catch (UserHasArticlesException $th) {
+            Log::warning('Penghapusan pengguna ditolak: '.$th->getMessage());
+
+            return back()->with('error', $th->getMessage())->withInput();
         } catch (\Throwable $th) {
             Log::error('Gagal menghapus pengguna: '.$th->getMessage());
 

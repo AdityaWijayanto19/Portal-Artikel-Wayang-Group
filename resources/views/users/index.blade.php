@@ -92,12 +92,61 @@
                             </a>
 
                             @if ($user->id !== auth()->id())
-                                <x-delete-modal action="{{ route('users.destroy', $user) }}" title="Hapus Pengguna?">
+                                @php
+                                    $articleCount = (int) ($user->articles_count ?? 0);
+                                    $userCompanyIds = $user->companyIds();
+                                    $recipients = ($candidateUsers ?? collect())
+                                        ->filter(fn ($candidate) => $candidate->id !== $user->id)
+                                        ->filter(fn ($candidate) => array_intersect($candidate->companyIds(), $userCompanyIds) !== [])
+                                        ->values();
+                                    // Ada artikel tapi tidak ada penerima satu perusahaan → penghapusan diblokir.
+                                    $blocked = $articleCount > 0 && $recipients->isEmpty();
+                                @endphp
+
+                                <x-delete-modal action="{{ route('users.destroy', $user) }}" title="Hapus Pengguna?"
+                                    :confirm-disabled="$blocked">
                                     <x-slot:message>
                                         "<span class="font-semibold text-slate-700">{{ $user->name }}</span>" Data
                                         Pengguna
                                         ini akan dihapus permanen. Tindakan ini tidak dapat dibatalkan.
+
+                                        @if ($articleCount > 0)
+                                            <span class="block mt-2 text-slate-700">
+                                                Pengguna ini memiliki
+                                                <strong>{{ $articleCount }}</strong> artikel —
+                                                {{ $blocked
+                                                    ? 'artikel harus dipindahkan lebih dulu, namun tidak ada pengguna lain dalam perusahaan yang sama.'
+                                                    : 'artikelnya akan dipindahkan ke pengguna lain dalam perusahaan yang sama sebelum pengguna dihapus.' }}
+                                            </span>
+                                        @endif
                                     </x-slot:message>
+
+                                    @if ($articleCount > 0 && ! $blocked)
+                                        <x-slot:extra>
+                                            <label for="transfer_user_id_{{ $user->id }}"
+                                                class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                                                Pindahkan {{ $articleCount }} artikel ke
+                                                <span class="text-rose-500">*</span>
+                                            </label>
+                                            <select name="transfer_user_id" id="transfer_user_id_{{ $user->id }}"
+                                                required
+                                                class="w-full text-xs border border-slate-300 rounded-xl px-3.5 py-2.5 bg-white text-slate-800 focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand transition shadow-xs cursor-pointer">
+                                                <option value="">— Pilih penerima —</option>
+                                                @foreach ($recipients as $recipient)
+                                                    <option value="{{ $recipient->id }}">
+                                                        {{ $recipient->name }}
+                                                        ({{
+                                                            strtoupper(str_replace(
+                                                                '_',
+                                                                ' ',
+                                                                $recipient->roles->first()?->name ?? 'author',
+                                                            ))
+                                                        }})
+                                                    </option>
+                                                @endforeach
+                                            </select>
+                                        </x-slot:extra>
+                                    @endif
                                 </x-delete-modal>
                             @endif
                         </div>
