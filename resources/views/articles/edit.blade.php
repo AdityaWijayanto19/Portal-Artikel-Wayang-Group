@@ -74,5 +74,9 @@
             <input type="hidden" name="company_id" value="{{ $article->company_id }}">
             @include('articles.partials._form')
         </form>
+
+        {{-- Modal jadwalkan di luar form utama: tombol di dalamnya tak bisa ikut
+             submit form, dan selalu tampil di depan (di luar kolom sticky). --}}
+        @include('articles.partials._schedule-modal')
     </div>
 @endsection
