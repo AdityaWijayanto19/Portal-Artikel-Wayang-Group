@@ -22,6 +22,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -162,6 +163,7 @@ class ArticleController extends Controller
         $keyword = trim($validated['keyword']);
         $articleId = $validated['article_id'] ?? null;
 
+        // 1) Peringatan duplikat: hanya di dalam perusahaan aktif (scope endpoint).
         $query = ArticleSeoMeta::withoutGlobalScope(TenantScope::class)
             ->where('yoast_focuskw', $keyword)
             ->whereHas('article', fn ($q) => $q->where('company_id', $companyId));
@@ -172,8 +174,23 @@ class ArticleController extends Controller
 
         $exists = $query->exists();
 
+        // 2) Kondisi untuk PENILAIAN skor: HARUS identik dengan
+        // SeoAnalyzerService::scorePreviouslyUsedKeyphrase (tanpa filter perusahaan,
+        // dan mengabaikan meta yatim milik artikel yang sudah terhapus).
+        // Bila beda, kalkulator JS di form menampilkan skor berbeda dari gerbang publish.
+        $scoreQuery = ArticleSeoMeta::withoutGlobalScope(TenantScope::class)
+            ->where('yoast_focuskw', $keyword)
+            ->whereIn('article_id', DB::table('articles')->select('id'));
+
+        if ($articleId !== null) {
+            $scoreQuery->where('article_id', '!=', $articleId);
+        }
+
+        $scoreDuplicate = $scoreQuery->exists();
+
         return response()->json([
             'duplicate' => $exists,
+            'score_duplicate' => $scoreDuplicate,
             'keyword' => $keyword,
         ])->header('Cache-Control', 'no-store, private');
     }

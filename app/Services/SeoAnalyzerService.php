@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\ArticleSeoMeta;
 use App\Models\Scopes\TenantScope;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class SeoAnalyzerService
@@ -136,7 +137,10 @@ class SeoAnalyzerService
         $title = trim((string) ($data['title'] ?? ''));
         $slug = trim((string) ($data['slug'] ?? ''));
         $content = trim((string) ($data['content'] ?? ''));
-        $seoTitle = trim((string) ($data['yoast_title'] ?? $title));
+        // "Kosongkan untuk memakai Judul Artikel" (hint pada form). `??` tidak
+        // menangani string kosong, sehingga skor server bisa jatuh 8 poin padahal
+        // kalkulator klien memakai judul artikel — pakai `?:` agar keduanya sama.
+        $seoTitle = trim((string) ($data['yoast_title'] ?? '')) ?: $title;
         $metaDescription = trim((string) ($data['yoast_metadesc'] ?? ''));
         $focusKeyword = trim((string) ($data['yoast_focuskw'] ?? ''));
         $altText = trim((string) ($data['image_alt_text'] ?? ''));
@@ -364,8 +368,13 @@ class SeoAnalyzerService
             return ['label' => 'Previously Used Keyphrase', 'score' => 0, 'max' => 8, 'note' => 'Belum diisi'];
         }
 
+        // Hanya hitung meta yang artikelnya MASIH ADA. Subquery sengaja memakai
+        // DB::table (tanpa global scope) supaya cakupannya tetap global; jangan
+        // diganti whereHas('article') karena relasi itu kena TenantScope dan
+        // otomatis mempersempit cek menjadi per-perusahaan.
         $query = ArticleSeoMeta::withoutGlobalScope(TenantScope::class)
-            ->where('yoast_focuskw', $focusKeyword);
+            ->where('yoast_focuskw', $focusKeyword)
+            ->whereIn('article_id', DB::table('articles')->select('id'));
 
         if ($articleId !== null) {
             $query->where('article_id', '!=', $articleId);

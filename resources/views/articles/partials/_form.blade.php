@@ -339,7 +339,11 @@
                                                         d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
                                                         clip-rule="evenodd" />
                                                 </svg>
-                                                <span class="text-slate-600 truncate" x-text="item.label"></span>
+                                                <div class="min-w-0">
+                                                    <span class="text-slate-600 block truncate" x-text="item.label"></span>
+                                                    <span class="text-[10px] text-slate-400 block truncate"
+                                                        x-show="item.note" x-text="item.note"></span>
+                                                </div>
                                             </div>
                                             <span class="font-semibold text-slate-500 shrink-0 ml-2">
                                                 <span x-text="item.score"></span>/<span x-text="item.max"></span>
@@ -743,6 +747,10 @@
 
                 // Keyword duplicate check
                 keywordDuplicate: false,
+                // Kondisi duplikat untuk PENILAIAN skor — sama dengan yang dipakai
+                // server (SeoAnalyzerService), bisa berbeda dari `keywordDuplicate`
+                // yang hanya menampilkan peringatan di perusahaan aktif.
+                scoreDuplicate: false,
                 checkingKeyword: false,
 
                 // UI state
@@ -771,6 +779,10 @@
                     this.slugEdited = !!this.slug;
                     if (!this.slug && this.articleTitle) this.slug = this.slugify(this.articleTitle);
                     this.recompute();
+
+                    // Cek duplikat keyphrase SEJAK HALAMAN DIMUAT (dulu hanya jalan saat
+                    // user mengetik) supaya skor indikator #13 langsung sama dengan server.
+                    this.checkKeywordDuplicate();
 
                     // Auto-save setup
                     this.storageKey = 'article_draft_' + (initial.companyId || 0) + '_' + (initial.articleId || 'new');
@@ -1061,11 +1073,22 @@
                     const kwInHeading = kw && headings.some(h => h.toLowerCase().includes(kw));
                     seoParts.push({ label: 'Keyphrase in Subheading', max: 9, score: kwInHeading ? 9 : 0 });
 
-                    // 9. Keyphrase in Image Alt (6)
-                    seoParts.push({
-                        label: 'Keyphrase in Image Alt', max: 6,
-                        score: (kw && alt.toLowerCase().includes(kw)) ? 6 : (alt ? 3 : 0)
-                    });
+                    // 9. Keyphrase in Image Alt (6) — tanpa keyphrase server memberi 0
+                    // (SeoAnalyzerService::scoreKeyphraseInAltAttributes).
+                    let altScore = 0;
+                    let altNote = 'Belum diisi';
+                    if (kw) {
+                        if (alt && alt.toLowerCase().includes(kw)) {
+                            altScore = 6;
+                            altNote = 'Keyword ditemukan di alt text';
+                        } else if (alt) {
+                            altScore = 3;
+                            altNote = 'Alt text ada tanpa keyword';
+                        } else {
+                            altNote = 'Alt text belum ada';
+                        }
+                    }
+                    seoParts.push({ label: 'Keyphrase in Image Alt', max: 6, score: altScore, note: altNote });
 
                     // 10. Internal Links (8)
                     const links = [...content.matchAll(/href=["']([^"']+)["']/gi)].map(m => m[1]);
@@ -1086,8 +1109,27 @@
                         score: words >= 900 ? 9 : (words >= 300 ? 5 : (words > 0 ? 2 : 0))
                     });
 
-                    // 13. Previously Used Keyphrase (8) — handled server-side, client shows placeholder
-                    seoParts.push({ label: 'Previously Used Keyphrase', max: 8, score: 8 });
+                    // 13. Previously Used Keyphrase (8) — hasil cek server lewat endpoint
+                    // check-keyword (tersimpan di `scoreDuplicate`). Dulu indikator ini
+                    // di-hardcode 8 sehingga panel menampilkan skor 8 poin di atas skor
+                    // yang dihitung server saat publish.
+                    let prevKwScore = 8;
+                    let prevKwNote = 'Keyword unik';
+                    if (!kw) {
+                        prevKwScore = 0;
+                        prevKwNote = 'Belum diisi';
+                    } else if (this.scoreDuplicate) {
+                        prevKwScore = 0;
+                        prevKwNote = this.keywordDuplicate
+                            ? 'Keyword sudah dipakai artikel lain'
+                            : 'Keyword dipakai artikel perusahaan lain';
+                    }
+                    seoParts.push({
+                        label: 'Previously Used Keyphrase',
+                        max: 8,
+                        score: prevKwScore,
+                        note: prevKwNote,
+                    });
 
                     this.seoBreakdown = seoParts;
                     this.seoScore = Math.min(100, Math.max(0, seoParts.reduce((a, b) => a + b.score, 0)));
@@ -1180,6 +1222,8 @@
                     const kw = (this.focuskw || '').trim();
                     if (!kw || !this.checkKeywordUrl) {
                         this.keywordDuplicate = false;
+                        this.scoreDuplicate = false;
+                        this.recompute(); // indikator #13 kembali 8 bila keyword dikosongkan
                         return;
                     }
 
@@ -1202,11 +1246,16 @@
                         if (res.ok) {
                             const data = await res.json();
                             this.keywordDuplicate = data.duplicate || false;
+                            // `score_duplicate` = kondisi yang persis dipakai server
+                            // untuk menilai indikator #13 (bila tidak ada, pakai `duplicate`).
+                            this.scoreDuplicate = Boolean(data.score_duplicate ?? data.duplicate);
                         }
                     } catch (e) {
                         console.warn('[KeywordCheck] gagal:', e);
                     } finally {
                         this.checkingKeyword = false;
+                        // Hasil cek menentukan skor indikator #13 → hitung ulang.
+                        this.recompute();
                     }
                 },
 

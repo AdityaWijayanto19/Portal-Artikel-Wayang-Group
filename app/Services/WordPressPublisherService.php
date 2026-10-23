@@ -854,6 +854,10 @@ class WordPressPublisherService
             'yoast_title' => $seo?->yoast_title ?? $article->yoast_title,
             'yoast_metadesc' => $seo?->yoast_metadesc ?? $article->yoast_metadesc,
             'yoast_focuskw' => $seo?->yoast_focuskw ?? $article->yoast_focuskw,
+            // Wajib: tanpa article_id, SeoAnalyzerService menganggap artikel INI
+            // sebagai pemakai keyword lain → indikator #13 dipotong 8 →
+            // _yoast_wpseo_linkdex yang dikirim ke WordPress selalu kurang 8.
+            'article_id' => $article->id,
         ];
     }
 
