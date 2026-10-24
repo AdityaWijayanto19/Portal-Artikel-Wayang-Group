@@ -17,9 +17,18 @@ Artisan::command('inspire', function () {
 | ArticleService::publishDue() menjamin idempoten; tanpa overlap & terkunci
 | satu server (database cache mendukung atomic lock).
 |
+| PENTING: memakai Schedule::call() (callback) BUKAN Schedule::command().
+| Schedule::command() menjalankan command sebagai subprocess lewat Symfony
+| Process yang membutuhkan proc_open() — Hostinger menonaktifkan proc_open()
+| di PHP CLI shared hosting sehingga event command gagal diam-diam tiap menit
+| (lihat laravel.log: "The Process class relies on proc_open"). Callback
+| dieksekusi in-process, tanpa subprocess. Name() wajib agar tanpa overlap
+| aktif & mutex punya nama unik.
+|
 */
-Schedule::command('articles:publish-due')
+Schedule::call(function () {
+    Artisan::call('articles:publish-due');
+})->name('articles:publish-due')
     ->everyMinute()
     ->withoutOverlapping(10)
-    ->onOneServer()
-    ->appendOutputTo(storage_path('logs/scheduler.log'));
+    ->onOneServer();
