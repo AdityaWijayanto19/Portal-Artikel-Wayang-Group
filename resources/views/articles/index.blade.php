@@ -2,6 +2,9 @@
 
 @section('title', 'Artikel · ' . $company->name)
 @section('subtitle', 'Susun, nilai SEO, dan publikasikan artikel ke situs WordPress ' . $company->name . '.')
+@hasrole('super_admin')
+    @section('back_url', route('articles.select'))
+@endhasrole
 
 @push('styles')
     <style>
@@ -13,16 +16,14 @@
 
 @section('header_actions')
     <div class="flex items-center gap-2">
-        @hasrole('super_admin')
-            <a href="{{ route('articles.select') }}"
-                class="inline-flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3 py-2 rounded-lg transition">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                </svg>
-                <span>Ganti Perusahaan</span>
-            </a>
-        @endhasrole
+        <a href="{{ route('articles.calendar') }}"
+            class="inline-flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3 py-2 rounded-lg transition">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <span>Kalender Artikel</span>
+        </a>
         <a href="{{ route('articles.create') }}"
             class="inline-flex items-center gap-2 bg-brand hover:bg-brand/90 text-brand-text text-xs font-semibold px-4 py-2 rounded-lg transition shadow-sm">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -55,9 +56,11 @@
             @forelse($articles as $article)
                 @php
                     $seoScore = (int) ($article->seoMeta->seo_score ?? ($article->seo_score ?? 0));
-                    $readabilityScore = (int) ($article->seoMeta->readability_score ?? ($article->readability_score ?? 0));
+                    $readabilityScore =
+                        (int) ($article->seoMeta->readability_score ?? ($article->readability_score ?? 0));
                     $seoColor = $seoScore >= 80 ? 'emerald' : ($seoScore >= 60 ? 'amber' : 'rose');
-                    $readabilityColor = $readabilityScore >= 80 ? 'emerald' : ($readabilityScore >= 60 ? 'amber' : 'rose');
+                    $readabilityColor =
+                        $readabilityScore >= 80 ? 'emerald' : ($readabilityScore >= 60 ? 'amber' : 'rose');
                 @endphp
                 <tr class="hover:bg-slate-50/80 transition align-top">
                     <td class="px-4 py-3">
@@ -110,16 +113,25 @@
                                 @endphp
                                 <div class="flex items-center gap-1.5">
                                     <span class="w-1.5 h-1.5 rounded-full shrink-0"
-                                        :class="pubStatus('{{ $article->id }}', '{{ $siteId }}') === 'published' ? 'bg-emerald-500'
-                                            : (pubStatus('{{ $article->id }}', '{{ $siteId }}') === 'queued' ? 'bg-amber-500'
-                                            : (pubStatus('{{ $article->id }}', '{{ $siteId }}') === 'failed' ? 'bg-rose-500'
-                                            : 'bg-slate-400'))"></span>
+                                        :class="pubStatus('{{ $article->id }}', '{{ $siteId }}') === 'published' ?
+                                            'bg-emerald-500' :
+                                            (pubStatus('{{ $article->id }}', '{{ $siteId }}') === 'queued' ?
+                                                'bg-amber-500' :
+                                                (pubStatus('{{ $article->id }}',
+                                                        '{{ $siteId }}') === 'failed' ? 'bg-rose-500' :
+                                                    'bg-slate-400'))"></span>
                                     <div class="min-w-0 flex-1">
-                                        <a href="#" x-cloak x-show="postUrl('{{ $article->id }}', '{{ $siteId }}')" :href="postUrl('{{ $article->id }}', '{{ $siteId }}')" target="_blank" rel="noopener"
+                                        <a href="#" x-cloak
+                                            x-show="postUrl('{{ $article->id }}', '{{ $siteId }}')"
+                                            :href="postUrl('{{ $article->id }}', '{{ $siteId }}')" target="_blank"
+                                            rel="noopener"
                                             class="inline-flex items-center gap-1 text-[11px] font-medium text-brand hover:text-brand/80 hover:underline truncate block max-w-[160px]"
-                                            :title="'Buka artikel di ' + siteName('{{ $article->id }}', '{{ $siteId }}')">
-                                            <span class="truncate" x-text="siteName('{{ $article->id }}', '{{ $siteId }}')"></span>
-                                            <svg class="w-2.5 h-2.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            :title="'Buka artikel di ' + siteName('{{ $article->id }}',
+                                                '{{ $siteId }}')">
+                                            <span class="truncate"
+                                                x-text="siteName('{{ $article->id }}', '{{ $siteId }}')"></span>
+                                            <svg class="w-2.5 h-2.5 shrink-0" fill="none" stroke="currentColor"
+                                                viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                     d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                                             </svg>
@@ -128,21 +140,26 @@
                                             class="text-[11px] text-slate-600 truncate block max-w-[160px]"
                                             x-text="siteName('{{ $article->id }}', '{{ $siteId }}')"></span>
                                         <span class="text-[9px] font-semibold uppercase"
-                                            :class="pubStatus('{{ $article->id }}', '{{ $siteId }}') === 'published' ? 'text-emerald-600'
-                                                : (pubStatus('{{ $article->id }}', '{{ $siteId }}') === 'queued' ? 'text-amber-600'
-                                                : (pubStatus('{{ $article->id }}', '{{ $siteId }}') === 'failed' ? 'text-rose-600'
-                                                : 'text-slate-500'))"
+                                            :class="pubStatus('{{ $article->id }}', '{{ $siteId }}') === 'published' ?
+                                                'text-emerald-600' :
+                                                (pubStatus('{{ $article->id }}',
+                                                        '{{ $siteId }}') === 'queued' ? 'text-amber-600' :
+                                                    (pubStatus('{{ $article->id }}',
+                                                            '{{ $siteId }}') === 'failed' ? 'text-rose-600' :
+                                                        'text-slate-500'))"
                                             x-text="pubLabel(pubStatus('{{ $article->id }}', '{{ $siteId }}'))"></span>
                                     </div>
                                     @if ($pub->wpSite)
-                                        <form x-cloak x-show="pubStatus('{{ $article->id }}', '{{ $siteId }}') === 'failed'"
+                                        <form x-cloak
+                                            x-show="pubStatus('{{ $article->id }}', '{{ $siteId }}') === 'failed'"
                                             action="{{ route('articles.retry', [$article, $pub->wpSite]) }}" method="POST"
                                             class="inline shrink-0">
                                             @csrf
                                             <button type="submit"
                                                 class="text-amber-500 hover:text-amber-700 p-0.5 transition"
                                                 title="Retry publish di situs ini">
-                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor"
+                                                    viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                         d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                                                 </svg>
@@ -157,7 +174,8 @@
                                             <button type="submit"
                                                 class="text-rose-400 hover:text-rose-600 p-0.5 transition shrink-0"
                                                 title="Unpublish dari situs ini">
-                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor"
+                                                    viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                         d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                                 </svg>
@@ -171,16 +189,18 @@
                         </div>
                     </td>
                     <td class="px-4 py-3 text-center">
-                        <span
-                            class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold"
-                            :class="articleStatus('{{ $article->id }}') === 'published' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60'
-                                : (articleStatus('{{ $article->id }}') === 'queued' ? 'bg-amber-50 text-amber-700 border border-amber-200/60'
-                                : (articleStatus('{{ $article->id }}') === 'failed' ? 'bg-rose-50 text-rose-700 border border-rose-200/60'
-                                : (articleStatus('{{ $article->id }}') === 'scheduled' ? 'bg-violet-50 text-violet-700 border border-violet-200/60'
-                                : 'bg-slate-50 text-slate-700 border border-slate-200/60')))"
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold"
+                            :class="articleStatus('{{ $article->id }}') === 'published' ?
+                                'bg-emerald-50 text-emerald-700 border border-emerald-200/60' :
+                                (articleStatus('{{ $article->id }}') === 'queued' ?
+                                    'bg-amber-50 text-amber-700 border border-amber-200/60' :
+                                    (articleStatus('{{ $article->id }}') === 'failed' ?
+                                        'bg-rose-50 text-rose-700 border border-rose-200/60' :
+                                        (articleStatus('{{ $article->id }}') === 'scheduled' ?
+                                            'bg-violet-50 text-violet-700 border border-violet-200/60' :
+                                            'bg-slate-50 text-slate-700 border border-slate-200/60')))"
                             x-text="statusLabel(articleStatus('{{ $article->id }}'))"></span>
-                        <span x-cloak
-                            x-show="articleStatus('{{ $article->id }}') === 'scheduled'"
+                        <span x-cloak x-show="articleStatus('{{ $article->id }}') === 'scheduled'"
                             class="block mt-1 text-[9px] font-medium text-violet-600">
                             {{ optional($article->scheduled_at)->format('d M Y, H:i') }} WIB
                         </span>
@@ -346,7 +366,7 @@
                         queued: 'Antrean',
                         published: 'Terbit',
                         failed: 'Gagal',
-                    }[status] || '—';
+                    } [status] || '—';
                 },
 
                 pubLabel(status) {
@@ -423,7 +443,8 @@
                             headers: {
                                 'Accept': 'application/json',
                                 'X-Requested-With': 'XMLHttpRequest',
-                                'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') || {}).content || '',
+                                'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') || {})
+                                    .content || '',
                             },
                         });
 

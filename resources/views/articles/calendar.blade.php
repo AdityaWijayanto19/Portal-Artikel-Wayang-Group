@@ -2,7 +2,6 @@
 
 @section('title', 'Kalender Jadwal · ' . $company->name)
 @section('subtitle', 'Jadwal publish mendatang beserta riwayat artikel terbit & gagal pada bulan berjalan.')
-@section('back_url', route('articles.index'))
 
 @push('styles')
     <style>
